@@ -1,0 +1,54 @@
+<!doctype html>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css" />
+<title>Hello, world</title>
+<body>
+    <style>
+    * {
+        box-sizing: border-box;
+        font-family: 'sans-serif' !important;
+        font-size: 4rem;
+    }
+
+    .wrapper {
+        background-color: red;
+        cursor: pointer;
+        height: 30vh;
+        left: 50%;
+        margin-left: -15vmin;
+        margin-top: -15vmin;
+        position: absolute;
+        text-align: center;
+        top: 50%;
+        width: 30vh;
+    }
+
+    .wrapper-active {
+        background-color: green;
+    }
+
+    .wrapper .default,
+    .wrapper .active {
+        display: none;
+        position: absolute;
+        top: 50%;
+        width: 100%;
+    }
+
+    .wrapper .default {
+       display: block;
+    }
+
+    .wrapper-active .default {
+       display: none;
+    }
+
+    .wrapper-active .active {
+        display: block;
+    }
+    </style>
+    <div></div>
+    <script src="elm.js"></script>
+    <script>
+    Elm.Main.embed(document.querySelector("div"));
+    </script>
+</body>
