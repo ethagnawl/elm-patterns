@@ -1,0 +1,58 @@
+<!doctype html>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css" />
+<title>Decaying Class Name</title>
+<body>
+    <style>
+    /* colors CO: https://coolors.co/008675-074f57-74a57f-9ece9a-e4c5af */
+    * {
+        box-sizing: border-box;
+        color: #eef1bd;
+        font-family: 'sans-serif' !important;
+        font-size: 4rem;
+    }
+
+    body {
+        background-color: #74a57f;
+    }
+
+    video {
+        height: 45%;
+        display: block;
+        margin: 0 auto;
+        width: 80%;
+    }
+
+    button {
+        background-color: #074f57;
+        border: none;
+        color: #9ece9a;
+        cursor: pointer;
+        display: inline-block;
+        margin: 1%;
+        outline: none;
+        width: 48%;
+    }
+
+    button:disabled {
+        opacity: 0.4;
+    }
+
+    </style>
+    <div id='app'></div>
+    <script src="elm.js"></script>
+    <script>
+    var app = Elm.Main.embed(document.getElementById('app'));
+
+    app.ports.pause.subscribe(function (message) {
+        console.log("ports.pause subscription:", message);
+        var video = document.querySelector('video');
+        video.pause();
+    });
+
+    app.ports.play.subscribe(function (message) {
+        console.log("ports.play subscription:", message);
+        var video = document.querySelector('video');
+        video.play();
+    });
+    </script>
+</body>
