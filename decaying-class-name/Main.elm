@@ -3,7 +3,6 @@ module Main exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Html exposing (..)
-import Json.Decode as Decode
 import Task
 import Time
 
@@ -70,12 +69,12 @@ update action model =
 
 
 subscriptions model =
-    (Time.every Time.second AttemptToHide)
+    (Time.every (Time.millisecond * 10) AttemptToHide)
 
 
 view model =
     div
-        [ on "mousemove" (Decode.succeed (Show))
+        [ onClick Show
         , class "wrapper"
         , classList [ ( "wrapper-active", model.shown ) ]
         ]
