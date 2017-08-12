@@ -1,9 +1,8 @@
-# Decaying Class Name
+# Video Player
 
-This is an example which shows how you'd add a class name to an element upon
-some event (e.g. mousemove) and then have that class decay over N seconds.
-Additionally, subsequent events which occur before N seconds have passed will
-reset the timer.
+This example demonstrates one way to create custom controls for an HTML5 video
+element. Messages are passed from the Elm application to the host web page via
+Ports.
 
 ## Running the example:
 - `npm install --global elm elm-live` (if you haven't already)
