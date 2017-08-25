@@ -1,0 +1,74 @@
+html,
+body {
+    background-color: #3d3d3d;
+    box-sizing: border-box;
+    font-family: 'Saira', sans-serif;
+    font-weight: 300;
+    height: 100%;
+}
+
+body {
+    text-align: center;
+}
+
+#wrapper {
+    display: inline-block;
+    height: 100%;
+    margin: 0 auto;
+    max-width: 800px;
+    text-align: center;
+    text-transform: uppercase;
+    width: 60%;
+}
+
+#wrapper:before {
+    background-color: #fff;
+    bottom: 0;
+    content: '';
+    display: block;
+    position: fixed;
+    left: 3vw;
+    top: 0;
+    width: 2vw;
+}
+
+h1 {
+    color: #fff;
+    font-size: 4vw;
+    margin-bottom: 3.33vh;
+}
+
+.albums-wrapper {
+    margin-top: 11.11vh;
+}
+
+.album {
+    margin: 1.11vh 0;
+}
+
+.album,
+.album a {
+    color: #fff;
+    font-size: 3vw;
+}
+
+.album a {
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.album .title,
+.album .cover,
+.album .description {
+    margin: 3.33vh 0;
+}
+
+.album .cover {
+    display: block;
+    width: 100%;
+}
+
+.album .description {
+    font-size: 1.5vw;
+    line-height: 2vw;
+}
