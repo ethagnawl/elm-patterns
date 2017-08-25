@@ -1,50 +1,95 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Html exposing (..)
-import Port
+import Json.Decode as Decode
+
+
+port pause : String -> Cmd msg
+
+
+port play : String -> Cmd msg
+
+
+port progress : (Float -> msg) -> Sub msg
+
+
+port replay : String -> Cmd msg
+
+
+port timeUpdate : String -> Cmd msg
 
 
 type alias Model =
     { paused : Bool
     , playing : Bool
+    , progress : Float
     }
 
 
 type Msg
     = Pause
     | Play
+    | Progress Float
+    | TimeUpdate
 
 
 init =
     ( { paused = True
       , playing = True
+      , progress = 0.0
       }
     , Cmd.none
     )
 
 
 subscriptions _ =
-    Sub.none
+    progress Progress
 
 
 update action model =
     case action of
         Pause ->
-            ( { model | paused = True, playing = False }, Port.pause "pause" )
+            ( { model | paused = True, playing = False }, pause "pause" )
 
         Play ->
-            ( { model | paused = False, playing = True }, Port.play "play" )
+            ( { model | paused = False, playing = True }, play "play" )
+
+        TimeUpdate ->
+            ( model, timeUpdate "timeUpdate" )
+
+        Progress newProgress ->
+            ( { model | progress = newProgress }, Cmd.none )
 
 
 view model =
-    div
-        [ class "wrapper" ]
-        [ video [ src "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" ] []
-        , button [ onClick Play ] [ text "PLAY" ]
-        , button [ onClick Pause ] [ text "PAUSE" ]
-        ]
+    let
+        width =
+            (toString model.progress) ++ "%"
+    in
+        div
+            [ class "wrapper" ]
+            [ div
+                [ class "video-wrapper" ]
+                [ video
+                    [ on "timeupdate" (Decode.succeed TimeUpdate)
+                    , src "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                    ]
+                    []
+                , div
+                    [ class "progress"
+                    , style
+                        [ ( "background-color", "#e4c5af" )
+                        , ( "height", "22px" )
+                        , ( "width", width )
+                        ]
+                    ]
+                    []
+                ]
+            , button [ onClick Play ] [ text "PLAY" ]
+            , button [ onClick Pause ] [ text "PAUSE" ]
+            ]
 
 
 main =

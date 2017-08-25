@@ -15,11 +15,17 @@
         background-color: #74a57f;
     }
 
-    video {
+    .video-wrapper {
         height: 45%;
+        margin: 0 auto;
+        max-width: 80%;
+        position: relative;
+    }
+
+    video {
         display: block;
         margin: 0 auto;
-        width: 80%;
+        width: 100%;
     }
 
     button {
@@ -35,6 +41,12 @@
 
     button:disabled {
         opacity: 0.4;
+    }
+
+    .progress {
+        bottom: 0;
+        height: 4%;
+        position: absolute;
     }
 
     </style>
@@ -54,5 +66,21 @@
         var video = document.querySelector('video');
         video.play();
     });
+
+    app.ports.timeUpdate.subscribe(function (message) {
+        console.log("ports.timeUpdate subscription:", message);
+        console.log("ports.timeUpdate subscription:", arguments);
+        var video = document.querySelector('video');
+        var progress = video.currentTime.toFixed(1)  / video.duration.toFixed(1);
+    });
+
+    app.ports.timeUpdate.subscribe(function (message) {
+        console.log("ports.timeUpdate subscription:", message);
+        console.log("ports.timeUpdate subscription:", arguments);
+        var video = document.querySelector('video');
+        var progress = video.currentTime.toFixed(1)  / video.duration.toFixed(1) * 100;
+        app.ports.progress.send(progress);
+    });
+
     </script>
 </body>
