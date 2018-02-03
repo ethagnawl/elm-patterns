@@ -1,16 +1,11 @@
 port module Main exposing (..)
 
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
-import Html exposing (..)
-import Http
-import Json.Decode as Decode exposing (..)
-import Json.Encode as Encode exposing (..)
 import Action
+import Html exposing (..)
+import Model
+import Types
 import Update
 import View
-import Types
-import Model
 
 
 init : Types.Flags -> ( Model.Model, Cmd Action.Action )
