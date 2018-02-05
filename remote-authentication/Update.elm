@@ -10,9 +10,8 @@ import Types
 
 attributesDecoder : Decoder Types.Attributes
 attributesDecoder =
-    Decode.map4 Types.Attributes
+    Decode.map3 Types.Attributes
         (Decode.field "email" Decode.string)
-        (Decode.field "password" Decode.string)
         (Decode.field "first_name" Decode.string)
         (Decode.field "last_name" Decode.string)
 
@@ -67,7 +66,6 @@ responseHandler model result =
         Ok response ->
             ( { model
                 | signedIn = True
-                , password = response.data.attributes.password
                 , firstName = response.data.attributes.firstName
                 , lastName = response.data.attributes.lastName
                 , email = response.data.attributes.email

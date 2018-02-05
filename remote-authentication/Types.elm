@@ -20,7 +20,6 @@ type alias Wrapper =
 
 type alias Attributes =
     { email : String
-    , password : String
     , firstName : String
     , lastName : String
     }
