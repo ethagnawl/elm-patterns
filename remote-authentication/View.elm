@@ -55,8 +55,8 @@ view model =
                     div [ id "form", class "mui-form" ]
                         [ legend [] [ text "Register" ]
                         , div
-                            [ class "mui--bg-accent-dark", style (displayHelper "block" showError) ]
-                            [ div [ class "mui--text-dark" ] [ text <| "There was a problem with your request: " ++ model.errorMsg ] ]
+                            [ class "mui-panel mui--bg-accent-dark", style (displayHelper "block" showError) ]
+                            [ div [ class "mui--text-dark-secondary" ] [ text <| "There was a problem with your request: " ++ model.errorMsg ] ]
                         , div []
                             [ div [ class "mui-textfield" ]
                                 [ label [ for "first_name" ] [ text "First name:" ]
@@ -129,8 +129,8 @@ view model =
                     div [ id "form", class "mui-form" ]
                         [ legend [] [ text "Log In" ]
                         , div
-                            [ class "mui--bg-accent-dark", style (displayHelper "block" showError) ]
-                            [ div [ class "mui--text-dark" ] [ text <| "There was a problem with your request: " ++ model.errorMsg ] ]
+                            [ class "mui-panel mui--bg-accent-dark", style (displayHelper "block" showError) ]
+                            [ div [ class "mui--text-dark-secondary" ] [ text <| "There was a problem with your request: " ++ model.errorMsg ] ]
                         , div []
                             [ div [ class "mui-textfield" ]
                                 [ label [ for "email" ] [ text "Email:" ]
