@@ -184,16 +184,16 @@ view model =
                     [ class "mui-btn mui-btn--danger"
                     , style (displayHelper "inline-block" (not signedIn))
                     , onClick Action.TogglePageState
-                    , (disabledHelper (model.pageState == Types.Login))
+                    , (disabledHelper (model.pageState == Types.Register))
                     ]
-                    [ text "Login" ]
+                    [ text "Register" ]
                 , button
                     [ class "mui-btn mui-btn--danger"
                     , style (displayHelper "inline-block" (not signedIn))
                     , onClick Action.TogglePageState
-                    , (disabledHelper (model.pageState == Types.Register))
+                    , (disabledHelper (model.pageState == Types.Login))
                     ]
-                    [ text "Register" ]
+                    [ text "Login" ]
                 , button
                     [ class "mui-btn mui-btn--danger"
                     , style (displayHelper "inline-block" signedIn)
