@@ -1,9 +1,9 @@
 module Update exposing (..)
 
-import Json.Decode as Decode exposing (..)
-import Json.Encode as Encode exposing (..)
 import Action
 import Http
+import Json.Decode as Decode exposing (..)
+import Json.Encode as Encode exposing (..)
 import Model
 import Types
 
