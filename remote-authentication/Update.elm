@@ -125,7 +125,7 @@ update msg model =
         Action.ClickLogIn ->
             ( model, apiRequest model (loginUrl model.apiRoot) signInUserEncoder )
 
-        Action.ClickRegisterUser ->
+        Action.ClickRegister ->
             ( model, apiRequest model (registerUrl model.apiRoot) signUpUserEncoder )
 
         Action.ResponseHandler response ->
@@ -150,7 +150,7 @@ update msg model =
         Action.SetPassword password ->
             ( { model | password = password }, Cmd.none )
 
-        Action.SetUsername email ->
+        Action.SetEmail email ->
             ( { model | email = email }, Cmd.none )
 
         Action.TogglePageState ->

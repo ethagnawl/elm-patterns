@@ -9,11 +9,9 @@ type alias Model =
     , errorMsg : String
     , firstName : String
     , lastName : String
-    , name : String
     , pageState : Types.PageState
     , password : String
     , signedIn : Bool
-    , token : String
     }
 
 
@@ -23,9 +21,7 @@ defaultModel =
     , errorMsg = ""
     , firstName = ""
     , lastName = ""
-    , name = ""
     , pageState = Types.Register
     , password = ""
     , signedIn = False
-    , token = ""
     }

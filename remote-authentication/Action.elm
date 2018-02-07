@@ -6,11 +6,11 @@ import Types
 
 type Action
     = ClickLogIn
-    | ClickRegisterUser
-    | ResponseHandler (Result Http.Error Types.Wrapper)
+    | ClickRegister
     | LogOut
+    | ResponseHandler (Result Http.Error Types.Wrapper)
+    | SetEmail String
     | SetFirstName String
     | SetLastName String
     | SetPassword String
-    | SetUsername String
     | TogglePageState

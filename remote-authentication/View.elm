@@ -91,7 +91,7 @@ view model =
                                     , type_ "email"
                                     , class "form-control"
                                     , Html.Attributes.value model.email
-                                    , onInput Action.SetUsername
+                                    , onInput Action.SetEmail
                                     ]
                                     []
                                 ]
@@ -112,7 +112,7 @@ view model =
                         , div []
                             [ button
                                 [ class "mui-btn mui-btn--primary"
-                                , onClick Action.ClickRegisterUser
+                                , onClick Action.ClickRegister
                                 ]
                                 [ text "Submit" ]
                             ]
@@ -139,7 +139,7 @@ view model =
                                     , type_ "email"
                                     , class "form-control"
                                     , Html.Attributes.value model.email
-                                    , onInput Action.SetUsername
+                                    , onInput Action.SetEmail
                                     ]
                                     []
                                 ]
