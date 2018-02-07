@@ -1,12 +1,12 @@
 module View exposing (..)
 
+import Action
+import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Html exposing (..)
 import Http
 import Json.Decode as Decode exposing (..)
 import Json.Encode as Encode exposing (..)
-import Action
 import Model
 import Types
 
