@@ -7,17 +7,19 @@ within an Elm application. It might be a stretch to call this one a UI pattern,
 but it's _close enough_. I know I would have found a similar, functional
 example useful when attempting to do something similar for the first time.
 
-The main aims of this demo were to show how you'd encode a model, send it over
-the wire, decode the response and integrate it into your application's state.
+The main aims of this demo were to show how you'd:
+- [encode some/all of a model](https://github.com/ethagnawl/elm-ui-patterns/blob/master/remote-authentication/Update.elm#L80-L95)
+- [send it over the wire](https://github.com/ethagnawl/elm-ui-patterns/blob/master/remote-authentication/Update.elm#L98-L129)
+- [decode the response and integrate it into your application state](https://github.com/ethagnawl/elm-ui-patterns/blob/master/remote-authentication/Update.elm#L11-L77)
 
 This application purposely doesn't use any external packages, but I think using
-elm-decode-pipeline, json-extra, elm-http-builder, etc. could potentially
-simplify the application code.
+elm-decode-pipeline, json-extra, elm-http-builder, etc. could greatly simplify
+the application code.
 
 ## Demo
 - https://s3.amazonaws.com/pdoherty-demos/remote-authentication/index.html
 
-## Running the example:
+## Running the example
 ### Elm
 - `npm install --global elm elm-live` (if you haven't already)
 - `elm-live Main.elm --output=elm.js --open`
