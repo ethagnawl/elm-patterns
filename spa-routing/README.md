@@ -15,6 +15,7 @@ example.
 
 ## Demo
 - https://ellie-app.com/h47h7m3WNa1/1
+- https://s3.amazonaws.com/pdoherty-demos/spa-routing/index.html
 
 ## Running the example:
 - `npm install --global elm elm-live` (if you haven't already)
