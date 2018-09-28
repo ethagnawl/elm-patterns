@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div id="elm"></div>
+    <script src="elm.js"></script>
+    <script>
+    var node = document.getElementById('elm');
+    var app = Elm.CreepySpywareDemo.init({
+        node: node
+    });
+
+    app.ports.creepySpywarePort.subscribe(creepySpywareService);
+
+    function creepySpywareService(eventObject) {
+        console.log('eventObject: ', eventObject);
+    }
+    </script>
+</body>
+</html>
