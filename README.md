@@ -9,5 +9,4 @@ examples would be most appreciated.
 
 ## TODO
 - wait for css transition before state change
-- normalize user input data without manipulating form value
 - google analytics

@@ -2,6 +2,7 @@ module Main exposing (init)
 
 import Browser
 import Html
+import Html.Attributes
 import Html.Events
 
 
@@ -19,7 +20,7 @@ type Action
 defaultModel : Model
 defaultModel =
     { normalizedName = Nothing
-    , rawName = Nothing
+    , rawName = Just "SlOPPy JOe"
     }
 
 
@@ -29,7 +30,10 @@ update msg model =
         UpdateName rawInput ->
             let
                 normalizedName_ =
-                    Just <| String.trim <| String.toLower rawInput
+                    Just <|
+                        (String.replace " " "_") <|
+                            String.toLower <|
+                                String.trim rawInput
             in
                 { model
                     | normalizedName = normalizedName_
@@ -42,7 +46,11 @@ update msg model =
 
 init : Model
 init =
-    defaultModel
+    let
+        rawName =
+            Maybe.withDefault "" defaultModel.rawName
+    in
+        (update (UpdateName rawName) defaultModel)
 
 
 view : Model -> Html.Html Action
@@ -57,23 +65,20 @@ view model =
         Html.div []
             [ Html.form []
                 [ Html.fieldset []
-                    [ Html.label [] [ Html.text "Your raw input" ]
-                    , Html.input [ Html.Events.onInput UpdateName ] []
+                    [ Html.label [] [ Html.text "rawName (what user sees during input and maybe elsewhere in the UI): " ]
+                    , Html.input
+                        [ Html.Attributes.type_ "text"
+                        , Html.Attributes.value rawName
+                        , Html.Events.onInput UpdateName
+                        ]
+                        []
                     ]
                 , Html.fieldset []
-                    [ Html.label [] [ Html.text "Your raw name: " ]
-                    , Html.output [] [ Html.text rawName ]
-                    ]
-                , Html.fieldset []
-                    [ Html.label [] [ Html.text "Your normalized name: " ]
+                    [ Html.label [] [ Html.text "normalizedName (what Elm uses for business logic): " ]
                     , Html.output [] [ Html.text normalizedName ]
                     ]
                 ]
             ]
-
-
-title =
-    "Normalized Form Input"
 
 
 main =
