@@ -17,3 +17,4 @@ Pull requests containing improvements and new examples would be most appreciated
 ## TODO
 - wait for css transition before state change
 - animation
+- port older apps to 0.19
