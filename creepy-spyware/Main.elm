@@ -73,6 +73,9 @@ view model =
             , Html.p
                 []
                 [ Html.text ("Button Clicks: " ++ (String.fromInt model.buttonClickCount)) ]
+            , Html.p
+                []
+                [ Html.text "(See console for simulated event logging.)" ]
             ]
         ]
     , title = "Creepy Spyware Demo"
