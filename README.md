@@ -1,8 +1,8 @@
 # Elm UI Patterns
 
 This repository collects a number of UI and application patterns I've discovered while building
-Elm applications. These patterns are things that -- to my mind -- are very simple/straightforward 
-in JavaScript but don't have immediately obvious solutions in Elm.
+Elm applications. These patterns are things that -- to my mind -- are simple/straightforward 
+in JavaScript but may not have immediately obvious solutions in Elm.
 
 Pull requests containing improvements and new examples would be most appreciated.
 
