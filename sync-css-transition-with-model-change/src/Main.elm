@@ -9,21 +9,19 @@ import Html.Styled
 import Html.Styled.Attributes
 import Html.Styled.Events
 import Html.Styled.Keyed
-import Time
-import Task
 import Process
+import Task
+import Time
 
 
 type ViewState
     = Start
-    | LoadQueued
     | Load
     | Done
 
 
 type Action
     = DoStart
-    | DoLoadQueued
     | DoLoad
     | DoDone
 
@@ -75,9 +73,6 @@ view model =
                 Load ->
                     "Load"
 
-                LoadQueued ->
-                    "LoadQueued"
-
                 Done ->
                     "Done"
 
@@ -97,7 +92,7 @@ view model =
                     , Css.top (Css.pct 50)
                     , Css.transform (Css.translateY (Css.pct -50))
                     ]
-                , Html.Styled.Events.onClick DoLoadQueued
+                , Html.Styled.Events.onClick DoLoad
                 ]
                 [ Html.Styled.text "Click to start!" ]
             )
@@ -105,9 +100,9 @@ view model =
         loading =
             ( "loading"
             , Html.Styled.div
-                [ (visibilityHelper (model.viewState == LoadQueued || model.viewState == Load))
+                [ (visibilityHelper (model.viewState == Load))
                 , Html.Styled.Attributes.class
-                    (if (model.viewState == LoadQueued || model.viewState == Load) then
+                    (if (model.viewState == Load) then
                         "loading"
                      else
                         ""
@@ -132,7 +127,7 @@ view model =
                 [ Html.Styled.p [] [ Html.Styled.text "Loading ..." ]
                 , Html.Styled.span
                     [ Html.Styled.Attributes.css [ Css.fontSize (Css.rem 1) ] ]
-                    [ Html.Styled.text "(State transition is synced with CSS transition!)" ]
+                    [ Html.Styled.text "(Note: State transition is kept in sync with CSS transition!)" ]
                 ]
             )
 
@@ -186,10 +181,10 @@ update msg model =
         DoStart ->
             ( { model | viewState = Start }, Cmd.none )
 
-        DoLoadQueued ->
-            ( { model | viewState = LoadQueued }, (delay loadingDelay DoLoad) )
+        DoLoad ->
+            ( { model | viewState = Load }, (delay loadingDelay DoDone) )
 
-        _ ->
+        DoDone ->
             ( { model | viewState = Done }, Cmd.none )
 
 

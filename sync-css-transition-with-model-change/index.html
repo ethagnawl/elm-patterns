@@ -4818,9 +4818,9 @@ var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var author$project$Main$init = function (_n0) {
 	return _Utils_Tuple2(author$project$Main$defaultModel, elm$core$Platform$Cmd$none);
 };
-var author$project$Main$DoLoad = {$: 'DoLoad'};
+var author$project$Main$DoDone = {$: 'DoDone'};
 var author$project$Main$Done = {$: 'Done'};
-var author$project$Main$LoadQueued = {$: 'LoadQueued'};
+var author$project$Main$Load = {$: 'Load'};
 var elm$core$Process$sleep = _Process_sleep;
 var elm$core$Basics$identity = function (x) {
 	return x;
@@ -4992,12 +4992,12 @@ var author$project$Main$update = F2(
 						model,
 						{viewState: author$project$Main$Start}),
 					elm$core$Platform$Cmd$none);
-			case 'DoLoadQueued':
+			case 'DoLoad':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{viewState: author$project$Main$LoadQueued}),
-					A2(author$project$Main$delay, author$project$Main$loadingDelay, author$project$Main$DoLoad));
+						{viewState: author$project$Main$Load}),
+					A2(author$project$Main$delay, author$project$Main$loadingDelay, author$project$Main$DoDone));
 			default:
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -5006,8 +5006,7 @@ var author$project$Main$update = F2(
 					elm$core$Platform$Cmd$none);
 		}
 	});
-var author$project$Main$DoLoadQueued = {$: 'DoLoadQueued'};
-var author$project$Main$Load = {$: 'Load'};
+var author$project$Main$DoLoad = {$: 'DoLoad'};
 var rtfeldman$elm_css$Css$cssFunction = F2(
 	function (funcName, args) {
 		return funcName + ('(' + (A2(elm$core$String$join, ', ', args) + ')'));
@@ -7954,8 +7953,6 @@ var author$project$Main$view = function (model) {
 				return 'Start';
 			case 'Load':
 				return 'Load';
-			case 'LoadQueued':
-				return 'LoadQueued';
 			default:
 				return 'Done';
 		}
@@ -7988,7 +7985,7 @@ var author$project$Main$view = function (model) {
 							rtfeldman$elm_css$Css$translateY(
 								rtfeldman$elm_css$Css$pct(-50)))
 						])),
-					rtfeldman$elm_css$Html$Styled$Events$onClick(author$project$Main$DoLoadQueued)
+					rtfeldman$elm_css$Html$Styled$Events$onClick(author$project$Main$DoLoad)
 				]),
 			_List_fromArray(
 				[
@@ -8001,9 +7998,9 @@ var author$project$Main$view = function (model) {
 			_List_fromArray(
 				[
 					author$project$Main$visibilityHelper(
-					_Utils_eq(model.viewState, author$project$Main$LoadQueued) || _Utils_eq(model.viewState, author$project$Main$Load)),
+					_Utils_eq(model.viewState, author$project$Main$Load)),
 					rtfeldman$elm_css$Html$Styled$Attributes$class(
-					(_Utils_eq(model.viewState, author$project$Main$LoadQueued) || _Utils_eq(model.viewState, author$project$Main$Load)) ? 'loading' : ''),
+					_Utils_eq(model.viewState, author$project$Main$Load) ? 'loading' : ''),
 					rtfeldman$elm_css$Html$Styled$Attributes$css(
 					_List_fromArray(
 						[
@@ -8058,7 +8055,7 @@ var author$project$Main$view = function (model) {
 						]),
 					_List_fromArray(
 						[
-							rtfeldman$elm_css$Html$Styled$text('(State transition is synced with CSS transition!)')
+							rtfeldman$elm_css$Html$Styled$text('(Note: State transition is kept in sync with CSS transition!)')
 						]))
 				])));
 	var done = _Utils_Tuple2(
