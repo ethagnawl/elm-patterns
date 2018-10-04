@@ -4982,7 +4982,7 @@ var author$project$Main$delay = F2(
 			},
 			elm$core$Process$sleep(time));
 	});
-var author$project$Main$loadingDelay = 3000;
+var author$project$Main$loadingDelay = 4000;
 var author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -5008,6 +5008,35 @@ var author$project$Main$update = F2(
 	});
 var author$project$Main$DoLoadQueued = {$: 'DoLoadQueued'};
 var author$project$Main$Load = {$: 'Load'};
+var rtfeldman$elm_css$Css$cssFunction = F2(
+	function (funcName, args) {
+		return funcName + ('(' + (A2(elm$core$String$join, ', ', args) + ')'));
+	});
+var rtfeldman$elm_css$Css$Structure$Compatible = {$: 'Compatible'};
+var rtfeldman$elm_css$Css$rgb = F3(
+	function (r, g, b) {
+		return {
+			alpha: 1,
+			blue: b,
+			color: rtfeldman$elm_css$Css$Structure$Compatible,
+			green: g,
+			red: r,
+			value: A2(
+				rtfeldman$elm_css$Css$cssFunction,
+				'rgb',
+				A2(
+					elm$core$List$map,
+					elm$core$String$fromInt,
+					_List_fromArray(
+						[r, g, b])))
+		};
+	});
+var author$project$Main$styles = {
+	colors: {
+		darkGreen: A3(rtfeldman$elm_css$Css$rgb, 140, 176, 86),
+		lightGreen: A3(rtfeldman$elm_css$Css$rgb, 212, 238, 172)
+	}
+};
 var elm$json$Json$Decode$map = _Json_map1;
 var elm$json$Json$Decode$map2 = _Json_map2;
 var elm$json$Json$Decode$succeed = _Json_succeed;
@@ -5037,11 +5066,10 @@ var rtfeldman$elm_css$VirtualDom$Styled$style = F2(
 			'');
 	});
 var rtfeldman$elm_css$Html$Styled$Attributes$style = rtfeldman$elm_css$VirtualDom$Styled$style;
-var author$project$Main$displayHelper = F2(
-	function (block, state) {
-		var display = state ? 'visible' : 'hidden';
-		return A2(rtfeldman$elm_css$Html$Styled$Attributes$style, 'visibility', display);
-	});
+var author$project$Main$visibilityHelper = function (state) {
+	var display = state ? 'visible' : 'hidden';
+	return A2(rtfeldman$elm_css$Html$Styled$Attributes$style, 'visibility', display);
+};
 var elm$core$Basics$negate = function (n) {
 	return -n;
 };
@@ -5068,7 +5096,6 @@ var rtfeldman$elm_css$Css$color = function (c) {
 	return A2(rtfeldman$elm_css$Css$property, 'color', c.value);
 };
 var rtfeldman$elm_css$Css$cursor = rtfeldman$elm_css$Css$prop1('cursor');
-var rtfeldman$elm_css$Css$Structure$Compatible = {$: 'Compatible'};
 var rtfeldman$elm_css$Css$fixed = {backgroundAttachment: rtfeldman$elm_css$Css$Structure$Compatible, position: rtfeldman$elm_css$Css$Structure$Compatible, tableLayout: rtfeldman$elm_css$Css$Structure$Compatible, value: 'fixed'};
 var rtfeldman$elm_css$Css$fontFamily = rtfeldman$elm_css$Css$prop1('font-family');
 var rtfeldman$elm_css$Css$fontSize = rtfeldman$elm_css$Css$prop1('font-size');
@@ -5107,28 +5134,6 @@ var rtfeldman$elm_css$Css$PxUnits = {$: 'PxUnits'};
 var rtfeldman$elm_css$Css$px = A2(rtfeldman$elm_css$Css$Internal$lengthConverter, rtfeldman$elm_css$Css$PxUnits, 'px');
 var rtfeldman$elm_css$Css$RemUnits = {$: 'RemUnits'};
 var rtfeldman$elm_css$Css$rem = A2(rtfeldman$elm_css$Css$Internal$lengthConverter, rtfeldman$elm_css$Css$RemUnits, 'rem');
-var rtfeldman$elm_css$Css$cssFunction = F2(
-	function (funcName, args) {
-		return funcName + ('(' + (A2(elm$core$String$join, ', ', args) + ')'));
-	});
-var rtfeldman$elm_css$Css$rgb = F3(
-	function (r, g, b) {
-		return {
-			alpha: 1,
-			blue: b,
-			color: rtfeldman$elm_css$Css$Structure$Compatible,
-			green: g,
-			red: r,
-			value: A2(
-				rtfeldman$elm_css$Css$cssFunction,
-				'rgb',
-				A2(
-					elm$core$List$map,
-					elm$core$String$fromInt,
-					_List_fromArray(
-						[r, g, b])))
-		};
-	});
 var rtfeldman$elm_css$Css$right = rtfeldman$elm_css$Css$prop1('right');
 var rtfeldman$elm_css$Css$sansSerif = {fontFamily: rtfeldman$elm_css$Css$Structure$Compatible, value: 'sans-serif'};
 var elm$core$List$head = function (list) {
@@ -5573,6 +5578,7 @@ var rtfeldman$elm_css$VirtualDom$Styled$node = rtfeldman$elm_css$VirtualDom$Styl
 var rtfeldman$elm_css$Html$Styled$node = rtfeldman$elm_css$VirtualDom$Styled$node;
 var rtfeldman$elm_css$Html$Styled$div = rtfeldman$elm_css$Html$Styled$node('div');
 var rtfeldman$elm_css$Html$Styled$p = rtfeldman$elm_css$Html$Styled$node('p');
+var rtfeldman$elm_css$Html$Styled$span = rtfeldman$elm_css$Html$Styled$node('span');
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var rtfeldman$elm_css$VirtualDom$Styled$Unstyled = function (a) {
 	return {$: 'Unstyled', a: a};
@@ -7960,15 +7966,12 @@ var author$project$Main$view = function (model) {
 			rtfeldman$elm_css$Html$Styled$div,
 			_List_fromArray(
 				[
-					A2(
-					author$project$Main$displayHelper,
-					'block',
+					author$project$Main$visibilityHelper(
 					_Utils_eq(model.viewState, author$project$Main$Start)),
 					rtfeldman$elm_css$Html$Styled$Attributes$css(
 					_List_fromArray(
 						[
-							rtfeldman$elm_css$Css$color(
-							A3(rtfeldman$elm_css$Css$rgb, 90, 124, 38)),
+							rtfeldman$elm_css$Css$color(author$project$Main$styles.colors.lightGreen),
 							rtfeldman$elm_css$Css$cursor(rtfeldman$elm_css$Css$pointer),
 							rtfeldman$elm_css$Css$fontFamily(rtfeldman$elm_css$Css$sansSerif),
 							rtfeldman$elm_css$Css$fontSize(
@@ -7997,31 +8000,28 @@ var author$project$Main$view = function (model) {
 			rtfeldman$elm_css$Html$Styled$div,
 			_List_fromArray(
 				[
-					A2(
-					author$project$Main$displayHelper,
-					'block',
+					author$project$Main$visibilityHelper(
 					_Utils_eq(model.viewState, author$project$Main$LoadQueued) || _Utils_eq(model.viewState, author$project$Main$Load)),
 					rtfeldman$elm_css$Html$Styled$Attributes$class(
 					(_Utils_eq(model.viewState, author$project$Main$LoadQueued) || _Utils_eq(model.viewState, author$project$Main$Load)) ? 'loading' : ''),
 					rtfeldman$elm_css$Html$Styled$Attributes$css(
 					_List_fromArray(
 						[
-							rtfeldman$elm_css$Css$color(
-							A3(rtfeldman$elm_css$Css$rgb, 212, 238, 172)),
+							rtfeldman$elm_css$Css$color(author$project$Main$styles.colors.lightGreen),
 							rtfeldman$elm_css$Css$fontFamily(rtfeldman$elm_css$Css$sansSerif),
 							rtfeldman$elm_css$Css$fontSize(
 							rtfeldman$elm_css$Css$rem(4)),
 							rtfeldman$elm_css$Css$left(
 							rtfeldman$elm_css$Css$px(0)),
 							rtfeldman$elm_css$Css$position(rtfeldman$elm_css$Css$fixed),
-							rtfeldman$elm_css$Css$transform(
-							rtfeldman$elm_css$Css$translateY(
-								rtfeldman$elm_css$Css$pct(-50))),
 							rtfeldman$elm_css$Css$right(
 							rtfeldman$elm_css$Css$px(0)),
 							rtfeldman$elm_css$Css$textAlign(rtfeldman$elm_css$Css$center),
 							rtfeldman$elm_css$Css$top(
 							rtfeldman$elm_css$Css$pct(50)),
+							rtfeldman$elm_css$Css$transform(
+							rtfeldman$elm_css$Css$translateY(
+								rtfeldman$elm_css$Css$pct(-50))),
 							rtfeldman$elm_css$Css$Transitions$transition(
 							_List_fromArray(
 								[
@@ -8032,8 +8032,7 @@ var author$project$Main$view = function (model) {
 							'loading',
 							_List_fromArray(
 								[
-									rtfeldman$elm_css$Css$color(
-									A3(rtfeldman$elm_css$Css$rgb, 140, 176, 86))
+									rtfeldman$elm_css$Css$color(author$project$Main$styles.colors.darkGreen)
 								]))
 						]))
 				]),
@@ -8047,8 +8046,16 @@ var author$project$Main$view = function (model) {
 							rtfeldman$elm_css$Html$Styled$text('Loading ...')
 						])),
 					A2(
-					rtfeldman$elm_css$Html$Styled$p,
-					_List_Nil,
+					rtfeldman$elm_css$Html$Styled$span,
+					_List_fromArray(
+						[
+							rtfeldman$elm_css$Html$Styled$Attributes$css(
+							_List_fromArray(
+								[
+									rtfeldman$elm_css$Css$fontSize(
+									rtfeldman$elm_css$Css$rem(1))
+								]))
+						]),
 					_List_fromArray(
 						[
 							rtfeldman$elm_css$Html$Styled$text('(State transition is synced with CSS transition!)')
@@ -8060,30 +8067,26 @@ var author$project$Main$view = function (model) {
 			rtfeldman$elm_css$Html$Styled$div,
 			_List_fromArray(
 				[
-					A2(
-					author$project$Main$displayHelper,
-					'block',
+					author$project$Main$visibilityHelper(
 					_Utils_eq(model.viewState, author$project$Main$Done)),
 					rtfeldman$elm_css$Html$Styled$Attributes$css(
 					_List_fromArray(
 						[
-							rtfeldman$elm_css$Css$color(
-							A3(rtfeldman$elm_css$Css$rgb, 212, 238, 172)),
-							rtfeldman$elm_css$Css$fontFamily(rtfeldman$elm_css$Css$sansSerif),
+							rtfeldman$elm_css$Css$color(author$project$Main$styles.colors.lightGreen),
 							rtfeldman$elm_css$Css$fontFamily(rtfeldman$elm_css$Css$sansSerif),
 							rtfeldman$elm_css$Css$fontSize(
 							rtfeldman$elm_css$Css$rem(4)),
 							rtfeldman$elm_css$Css$left(
 							rtfeldman$elm_css$Css$px(0)),
 							rtfeldman$elm_css$Css$position(rtfeldman$elm_css$Css$fixed),
-							rtfeldman$elm_css$Css$transform(
-							rtfeldman$elm_css$Css$translateY(
-								rtfeldman$elm_css$Css$pct(-50))),
 							rtfeldman$elm_css$Css$right(
 							rtfeldman$elm_css$Css$px(0)),
 							rtfeldman$elm_css$Css$textAlign(rtfeldman$elm_css$Css$center),
 							rtfeldman$elm_css$Css$top(
-							rtfeldman$elm_css$Css$pct(50))
+							rtfeldman$elm_css$Css$pct(50)),
+							rtfeldman$elm_css$Css$transform(
+							rtfeldman$elm_css$Css$translateY(
+								rtfeldman$elm_css$Css$pct(-50)))
 						]))
 				]),
 			_List_fromArray(
@@ -8100,8 +8103,7 @@ var author$project$Main$view = function (model) {
 						rtfeldman$elm_css$Html$Styled$Attributes$css(
 						_List_fromArray(
 							[
-								rtfeldman$elm_css$Css$backgroundColor(
-								A3(rtfeldman$elm_css$Css$rgb, 140, 176, 86)),
+								rtfeldman$elm_css$Css$backgroundColor(author$project$Main$styles.colors.darkGreen),
 								rtfeldman$elm_css$Css$height(
 								rtfeldman$elm_css$Css$vh(100)),
 								rtfeldman$elm_css$Css$left(

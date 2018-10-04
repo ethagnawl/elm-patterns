@@ -23,8 +23,8 @@ type ViewState
 
 type Action
     = DoStart
-    | DoLoad
     | DoLoadQueued
+    | DoLoad
     | DoDone
 
 
@@ -40,8 +40,8 @@ defaultModel =
 
 styles =
     { colors =
-        { lightGreen = (Css.rgb 212 238 172)
-        , darkGreen = ((Css.rgb 140 176 86))
+        { lightGreen = Css.rgb 212 238 172
+        , darkGreen = Css.rgb 140 176 86
         }
     }
 
@@ -50,7 +50,7 @@ init _ =
     ( defaultModel, Cmd.none )
 
 
-displayHelper block state =
+visibilityHelper state =
     let
         display =
             if state then
@@ -62,7 +62,7 @@ displayHelper block state =
 
 
 loadingDelay =
-    3000
+    4000
 
 
 view model =
@@ -84,7 +84,7 @@ view model =
         start =
             ( "start"
             , Html.Styled.div
-                [ (displayHelper "block" (model.viewState == Start))
+                [ (visibilityHelper (model.viewState == Start))
                 , Html.Styled.Attributes.css
                     [ Css.color styles.colors.lightGreen
                     , Css.cursor Css.pointer
@@ -105,7 +105,7 @@ view model =
         loading =
             ( "loading"
             , Html.Styled.div
-                [ (displayHelper "block" (model.viewState == LoadQueued || model.viewState == Load))
+                [ (visibilityHelper (model.viewState == LoadQueued || model.viewState == Load))
                 , Html.Styled.Attributes.class
                     (if (model.viewState == LoadQueued || model.viewState == Load) then
                         "loading"
@@ -118,10 +118,10 @@ view model =
                     , Css.fontSize (Css.rem 4)
                     , Css.left (Css.px 0)
                     , Css.position Css.fixed
-                    , Css.transform (Css.translateY (Css.pct -50))
                     , Css.right (Css.px 0)
                     , Css.textAlign Css.center
                     , Css.top (Css.pct 50)
+                    , Css.transform (Css.translateY (Css.pct -50))
                     , Css.Transitions.transition
                         [ Css.Transitions.color3 loadingDelay 0 Css.Transitions.linear ]
                     , Css.Global.withClass "loading"
@@ -130,25 +130,26 @@ view model =
                     ]
                 ]
                 [ Html.Styled.p [] [ Html.Styled.text "Loading ..." ]
-                , Html.Styled.p [] [ Html.Styled.text "(State transition is synced with CSS transition!)" ]
+                , Html.Styled.span
+                    [ Html.Styled.Attributes.css [ Css.fontSize (Css.rem 1) ] ]
+                    [ Html.Styled.text "(State transition is synced with CSS transition!)" ]
                 ]
             )
 
         done =
             ( "done"
             , Html.Styled.div
-                [ (displayHelper "block" (model.viewState == Done))
+                [ (visibilityHelper (model.viewState == Done))
                 , Html.Styled.Attributes.css
                     [ Css.color styles.colors.lightGreen
-                    , Css.fontFamily Css.sansSerif
                     , Css.fontFamily Css.sansSerif
                     , Css.fontSize (Css.rem 4)
                     , Css.left (Css.px 0)
                     , Css.position Css.fixed
-                    , Css.transform (Css.translateY (Css.pct -50))
                     , Css.right (Css.px 0)
                     , Css.textAlign Css.center
                     , Css.top (Css.pct 50)
+                    , Css.transform (Css.translateY (Css.pct -50))
                     ]
                 ]
                 [ Html.Styled.text "Done!" ]
