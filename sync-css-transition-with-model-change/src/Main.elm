@@ -38,6 +38,14 @@ defaultModel =
     }
 
 
+styles =
+    { colors =
+        { lightGreen = (Css.rgb 212 238 172)
+        , darkGreen = ((Css.rgb 140 176 86))
+        }
+    }
+
+
 init _ =
     ( defaultModel, Cmd.none )
 
@@ -78,7 +86,7 @@ view model =
             , Html.Styled.div
                 [ (displayHelper "block" (model.viewState == Start))
                 , Html.Styled.Attributes.css
-                    [ Css.color (Css.rgb 90 124 38)
+                    [ Css.color styles.colors.lightGreen
                     , Css.cursor Css.pointer
                     , Css.fontFamily Css.sansSerif
                     , Css.fontSize (Css.rem 4)
@@ -105,7 +113,7 @@ view model =
                         ""
                     )
                 , Html.Styled.Attributes.css
-                    [ Css.color (Css.rgb 212 238 172)
+                    [ Css.color styles.colors.lightGreen
                     , Css.fontFamily Css.sansSerif
                     , Css.fontSize (Css.rem 4)
                     , Css.left (Css.px 0)
@@ -117,7 +125,7 @@ view model =
                     , Css.Transitions.transition
                         [ Css.Transitions.color3 loadingDelay 0 Css.Transitions.linear ]
                     , Css.Global.withClass "loading"
-                        [ Css.color (Css.rgb 140 176 86)
+                        [ Css.color styles.colors.darkGreen
                         ]
                     ]
                 ]
@@ -131,7 +139,7 @@ view model =
             , Html.Styled.div
                 [ (displayHelper "block" (model.viewState == Done))
                 , Html.Styled.Attributes.css
-                    [ Css.color (Css.rgb 212 238 172)
+                    [ Css.color styles.colors.lightGreen
                     , Css.fontFamily Css.sansSerif
                     , Css.fontFamily Css.sansSerif
                     , Css.fontSize (Css.rem 4)
@@ -151,7 +159,7 @@ view model =
                 Html.Styled.toUnstyled <|
                     Html.Styled.Keyed.node "div"
                         [ Html.Styled.Attributes.css
-                            [ Css.backgroundColor (Css.rgb 140 176 86)
+                            [ Css.backgroundColor styles.colors.darkGreen
                             , Css.height (Css.vh 100)
                             , Css.left (Css.px 0)
                             , Css.position Css.fixed
