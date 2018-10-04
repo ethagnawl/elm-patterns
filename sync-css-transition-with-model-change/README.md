@@ -11,14 +11,12 @@ cause the view to be updated immediately and the user will (probably) not see
 the CSS transition.
 
 The solution presented in this example uses Process/Task to delay the state
-change, so it's kept in time with the CSS transition. If you're using elm-css 
+change, so it's kept in time with the CSS transition. If you're using elm-css
 (or defining the transition inline), this works especially well because you can
-define one value which both the CSS transition and the model delay share (search 
-for `loadingDelay` in src/Main.elm). This approach will also work if you're 
-using an external stylesheet, but you'll need to ensure the delay/transition are 
+define one value which both the CSS transition and the model delay share (search
+for `loadingDelay` in src/Main.elm). This approach will also work if you're
+using an external stylesheet, but you'll need to ensure the delay/transition are
 kept in sync.
-
-TODO
 
 ## Demo
 - https://ellie-app.com/3wTR8tFFjL3a1
