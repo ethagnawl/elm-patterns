@@ -25,3 +25,6 @@ TODO
 ## Running the example:
 - `npm install --global elm elm-live` (if you haven't already)
 - `elm-live src/Main.elm`
+
+## Resources
+- ["How to achieve behavior of setTimeout in Elm"](https://stackoverflow.com/questions/40599512/how-to-achieve-behavior-of-settimeout-in-elm/44354637#44354637)
