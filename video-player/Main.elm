@@ -74,7 +74,7 @@ view model =
                 [ class "video-wrapper" ]
                 [ video
                     [ on "timeupdate" (Decode.succeed TimeUpdate)
-                    , src "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4"
+                    , src "https://pdoherty-demos.s3.amazonaws.com/elm-video-player/big-buck-bunny.mp4"
                     ]
                     []
                 , div
