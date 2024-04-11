@@ -12,4 +12,9 @@ RUN tar -xzf elm.tar.gz
 RUN chmod +x dist_binaries/*
 RUN mv dist_binaries/* /usr/local/bin/
 
+# No idea why this is required for _some_ apps to be able to pull deps but not
+# others ...
+# See: https://github.com/cuducos/my-internet-speed/issues/10
+RUN echo "tcp 6	TCP # transmission control protocol" > /etc/protocols
+
 CMD elm --help

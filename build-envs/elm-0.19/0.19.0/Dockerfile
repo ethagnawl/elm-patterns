@@ -5,6 +5,7 @@ RUN apt-get install -y \
   curl
 
 RUN curl -L -o elm.tar.gz https://github.com/ethagnawl/elm-old-binaries/releases/download/2024-04-10/0.19.0-linux-x64.tar.gz
+RUN npm install -g elm-live@4.0.2
 
 RUN tar -xzf elm.tar.gz
 RUN chmod +x 0.19.0-linux-x64
