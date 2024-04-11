@@ -22,7 +22,7 @@ the application code.
 ## Running the example
 ### Elm
 - `npm install --global elm elm-live` (if you haven't already)
-- `elm-live Main.elm --output=elm.js --open`
+- `elm-live src/Main.elm --output=elm.js --open`
 ### API
 - You've got a few options here:
     - If you're on an x86-64 machine, you should be able to download/run the
