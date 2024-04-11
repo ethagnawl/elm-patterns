@@ -9,4 +9,4 @@ Ports.
 
 ## Running the example:
 - `npm install --global elm elm-live` (if you haven't already)
-- `elm-live Main.elm --output=elm.js --open`
+- `elm-live src/Main.elm --output=elm.js --open`
