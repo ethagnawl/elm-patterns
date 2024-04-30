@@ -36,8 +36,8 @@ type Msg
     | TimeUpdate
 
 
-init : Bool -> ( Model, Cmd Msg )
-init a =
+init : () -> ( Model, Cmd Msg )
+init flags =
     -- NOTE: This flag argument seems to be required by the compiler as of
     -- 0.19.1 but is not actually used.
     ( { paused = True
