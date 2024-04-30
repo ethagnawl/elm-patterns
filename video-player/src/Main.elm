@@ -1,8 +1,9 @@
 port module Main exposing (..)
 
+import Browser
+import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Html exposing (..)
 import Json.Decode as Decode
 
 
@@ -35,7 +36,10 @@ type Msg
     | TimeUpdate
 
 
-init =
+init : Bool -> ( Model, Cmd Msg )
+init a =
+    -- NOTE: This flag argument seems to be required by the compiler as of
+    -- 0.19.1 but is not actually used.
     ( { paused = True
       , playing = True
       , progress = 0.0
@@ -66,34 +70,32 @@ update action model =
 view model =
     let
         width =
-            (toString model.progress) ++ "%"
+            Debug.toString model.progress ++ "%"
     in
-        div
-            [ class "wrapper" ]
-            [ div
-                [ class "video-wrapper" ]
-                [ video
-                    [ on "timeupdate" (Decode.succeed TimeUpdate)
-                    , src "https://pdoherty-demos.s3.amazonaws.com/elm-video-player/big-buck-bunny.mp4"
-                    ]
-                    []
-                , div
-                    [ class "progress"
-                    , style
-                        [ ( "background-color", "#e4c5af" )
-                        , ( "height", "22px" )
-                        , ( "width", width )
-                        ]
-                    ]
-                    []
+    div
+        [ class "wrapper" ]
+        [ div
+            [ class "video-wrapper" ]
+            [ video
+                [ on "timeupdate" (Decode.succeed TimeUpdate)
+                , src "https://pdoherty-demos.s3.amazonaws.com/elm-video-player/big-buck-bunny.mp4"
                 ]
-            , button [ onClick Play ] [ text "PLAY" ]
-            , button [ onClick Pause ] [ text "PAUSE" ]
+                []
+            , div
+                [ class "progress"
+                , style "background-color" "#e4c5af"
+                , style "height" "22px"
+                , style "width" width
+                ]
+                []
             ]
+        , button [ onClick Play ] [ text "PLAY" ]
+        , button [ onClick Pause ] [ text "PAUSE" ]
+        ]
 
 
 main =
-    program
+    Browser.element
         { init = init
         , subscriptions = subscriptions
         , update = update

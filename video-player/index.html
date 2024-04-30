@@ -1,7 +1,7 @@
 <!doctype html>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css" />
-<title>Decaying Class Name</title>
-<body>
+<title>Video Player</title>
+<head>
     <style>
     /* colors CO: https://coolors.co/008675-074f57-74a57f-9ece9a-e4c5af */
     * {
@@ -50,37 +50,42 @@
     }
 
     </style>
+</head>
+<body>
     <div id='app'></div>
     <script src="elm.js"></script>
     <script>
-    var app = Elm.Main.embed(document.getElementById('app'));
+        var app = Elm.Main.init({
+            flags: true,
+            node: document.getElementById('app')
+        });
 
-    app.ports.pause.subscribe(function (message) {
-        console.log("ports.pause subscription:", message);
-        var video = document.querySelector('video');
-        video.pause();
-    });
+        app.ports.pause.subscribe(function (message) {
+            console.log("ports.pause subscription:", message);
+            var video = document.querySelector('video');
+            video.pause();
+        });
 
-    app.ports.play.subscribe(function (message) {
-        console.log("ports.play subscription:", message);
-        var video = document.querySelector('video');
-        video.play();
-    });
+        app.ports.play.subscribe(function (message) {
+            console.log("ports.play subscription:", message);
+            var video = document.querySelector('video');
+            video.play();
+        });
 
-    app.ports.timeUpdate.subscribe(function (message) {
-        console.log("ports.timeUpdate subscription:", message);
-        console.log("ports.timeUpdate subscription:", arguments);
-        var video = document.querySelector('video');
-        var progress = video.currentTime.toFixed(1)  / video.duration.toFixed(1);
-    });
+        app.ports.timeUpdate.subscribe(function (message) {
+            console.log("ports.timeUpdate subscription:", message);
+            console.log("ports.timeUpdate subscription:", arguments);
+            var video = document.querySelector('video');
+            var progress = video.currentTime.toFixed(1)  / video.duration.toFixed(1);
+        });
 
-    app.ports.timeUpdate.subscribe(function (message) {
-        console.log("ports.timeUpdate subscription:", message);
-        console.log("ports.timeUpdate subscription:", arguments);
-        var video = document.querySelector('video');
-        var progress = video.currentTime.toFixed(1)  / video.duration.toFixed(1) * 100;
-        app.ports.progress.send(progress);
-    });
+        app.ports.timeUpdate.subscribe(function (message) {
+            console.log("ports.timeUpdate subscription:", message);
+            console.log("ports.timeUpdate subscription:", arguments);
+            var video = document.querySelector('video');
+            var progress = video.currentTime.toFixed(1)  / video.duration.toFixed(1) * 100;
+            app.ports.progress.send(progress);
+        });
 
     </script>
 </body>
