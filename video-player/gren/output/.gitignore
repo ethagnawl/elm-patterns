@@ -1,0 +1,5 @@
+# This directory is for build outputs
+# The directory is tracked to ensure it exists, but contents are ignored
+
+*
+!.gitignore

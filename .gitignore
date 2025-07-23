@@ -2,3 +2,6 @@ elm-stuff
 elm.js
 *log
 node_modules
+gren_packages
+gren.js
+**/.gren/

@@ -1,0 +1,90 @@
+<!doctype html>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css" />
+<title>Video Player</title>
+<head>
+    <style>
+    /* colors CO: https://coolors.co/008675-074f57-74a57f-9ece9a-e4c5af */
+    * {
+        box-sizing: border-box;
+        color: #eef1bd;
+        font-family: 'sans-serif' !important;
+        font-size: 4rem;
+    }
+
+    body {
+        background-color: #74a57f;
+    }
+
+    .video-wrapper {
+        height: 45%;
+        margin: 0 auto;
+        max-width: 80%;
+        position: relative;
+    }
+
+    video {
+        display: block;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    button {
+        background-color: #074f57;
+        border: none;
+        color: #9ece9a;
+        cursor: pointer;
+        display: inline-block;
+        margin: 1%;
+        outline: none;
+        width: 48%;
+    }
+
+    button:disabled {
+        opacity: 0.4;
+    }
+
+    .progress {
+        bottom: 0;
+        height: 4%;
+        position: absolute;
+    }
+
+    </style>
+</head>
+<body>
+    <div id='app'></div>
+    <script src="output/gren.js"></script>
+    <script>
+        var app = Gren.Main.init({
+            node: document.getElementById('app')
+        });
+
+        app.ports.pause.subscribe(function (message) {
+            console.log("ports.pause subscription:", message);
+            var video = document.querySelector('video');
+            video.pause();
+        });
+
+        app.ports.play.subscribe(function (message) {
+            console.log("ports.play subscription:", message);
+            var video = document.querySelector('video');
+            video.play();
+        });
+
+        app.ports.timeUpdate.subscribe(function (message) {
+            console.log("ports.timeUpdate subscription:", message);
+            console.log("ports.timeUpdate subscription:", arguments);
+            var video = document.querySelector('video');
+            var progress = video.currentTime.toFixed(1)  / video.duration.toFixed(1);
+        });
+
+        app.ports.timeUpdate.subscribe(function (message) {
+            console.log("ports.timeUpdate subscription:", message);
+            console.log("ports.timeUpdate subscription:", arguments);
+            var video = document.querySelector('video');
+            var progress = video.currentTime.toFixed(1)  / video.duration.toFixed(1) * 100;
+            app.ports.progress.send(progress);
+        });
+
+    </script>
+</body>
