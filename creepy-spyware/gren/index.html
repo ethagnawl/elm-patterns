@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div id="gren"></div>
+    <script src="output/gren.js"></script>
+    <script>
+    var node = document.getElementById('gren');
+    var app = Gren.Main.init({
+        node: node
+    });
+
+    app.ports.creepySpywarePort.subscribe(creepySpywareService);
+
+    function creepySpywareService(eventObject) {
+        console.log('eventObject: ', eventObject);
+    }
+    </script>
+</body>
+</html>

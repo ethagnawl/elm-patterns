@@ -1,0 +1,92 @@
+port module Main exposing (init, main)
+
+import Browser
+import Html
+import Html.Events
+import Json.Encode
+
+
+port creepySpywarePort : Json.Encode.Value -> Cmd msg
+
+
+constructCSEventObject category action label =
+    Json.Encode.object <|
+        [ { key = "hitType", value = Json.Encode.string "event" }
+        , { key = "eventCategory", value = Json.Encode.string category }
+        , { key = "eventAction", value = Json.Encode.string action }
+        , { key = "eventLabel", value = Json.Encode.string label }
+        ]
+
+
+type alias Flags =
+    {}
+
+
+type Action
+    = ButtonClick
+    | None
+
+
+type alias Model =
+    { buttonClickCount : Int }
+
+
+defaultModel =
+    { buttonClickCount = 0 }
+
+
+update msg model =
+    when msg is
+        ButtonClick ->
+            let
+                newModel =
+                    { model | buttonClickCount = model.buttonClickCount + 1 }
+
+                category =
+                    "User interactions"
+
+                action =
+                    "button click"
+
+                label =
+                    "click count: " ++ String.fromInt model.buttonClickCount
+
+                eventObject =
+                    constructCSEventObject category action label
+            in
+             {model = newModel, command = creepySpywarePort eventObject}
+
+        _ ->
+            {model = model, command = Cmd.none}
+
+
+init flags =
+    {model=defaultModel, command=Cmd.none}
+
+
+view model =
+    { body =
+        [ Html.div []
+            [ Html.button
+                [ Html.Events.onClick ButtonClick ]
+                [ Html.text "Click!" ]
+            , Html.p
+                []
+                [ Html.text ("Button Clicks: " ++ String.fromInt model.buttonClickCount) ]
+            , Html.p
+                []
+                [ Html.text "(See console for simulated event logging.)" ]
+            ]
+        ]
+    , title = "Creepy Spyware Demo"
+    }
+
+
+main : Program Flags Model Action
+main =
+    Browser.document
+        { init = init
+        , subscriptions = \_ -> Sub.none
+        , update = update
+        , view = view
+        }
