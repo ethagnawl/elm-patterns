@@ -96,7 +96,7 @@ init _ =
     }
 
 
--- main : Program {} Model Msg
+main : Program {} Model Msg
 main =
     Browser.element
         { init = init
