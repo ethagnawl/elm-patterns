@@ -1,0 +1,59 @@
+<!doctype html>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css" />
+<title>Decaying Class Name</title>
+<body>
+    <style>
+    /* colors CO: https://coolors.co/644536-c4a381-b2675e-bbd686-eef1bd*/
+    * {
+        box-sizing: border-box;
+        color: #eef1bd;
+        font-family: 'sans-serif' !important;
+        font-size: 4rem;
+    }
+
+    .wrapper {
+        background-color: #b2675e;
+        cursor: pointer;
+        height: 30vh;
+        left: 50%;
+        margin-left: -15vmin;
+        margin-top: -15vmin;
+        position: absolute;
+        text-align: center;
+        top: 50%;
+        width: 30vh;
+    }
+
+    .wrapper-active {
+        background-color: #bbd686;
+    }
+
+    .wrapper .default,
+    .wrapper .active {
+        display: none;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 100%;
+    }
+
+    .wrapper .default {
+       display: block;
+    }
+
+    .wrapper-active .default {
+       display: none;
+    }
+
+    .wrapper-active .active {
+        display: block;
+    }
+    </style>
+    <div id='app'></div>
+    <script src="output/gren.js"></script>
+    <script>
+       var app = Gren.Main.init({
+           node: document.getElementById('app')
+       });
+    </script>
+</body>

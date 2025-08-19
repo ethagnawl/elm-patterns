@@ -1,0 +1,106 @@
+module Main exposing (..)
+
+import Browser
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (..)
+import Task
+import Time
+
+
+type alias Model =
+    { hideAt : Maybe Int
+    , shown : Bool
+    }
+
+
+type Msg
+    = AttemptToHide Time.Posix
+    | ScheduleHide Time.Posix
+    | Show
+
+
+show model =
+    { model = { model | shown = True }
+    , command = Task.perform ScheduleHide Time.now
+    }
+
+
+scheduleHide model time =
+    let
+        hideAtTime =
+            Time.posixToMillis(time) + 1000 -- ms
+    in
+        { model = { model | hideAt = Just hideAtTime }
+        , command = Cmd.none
+        }
+
+
+attemptToHide model time =
+    let time_ = Time.posixToMillis time
+    in
+        when model.hideAt is
+           Just hideAt ->
+               when time_ > hideAt is
+               True ->
+                   {
+                       model = { model
+                       | hideAt = Nothing
+                       , shown = False
+                       }
+                       , command = Cmd.none
+                   }
+
+               False ->
+                   {model = model , command = Cmd.none}
+
+           Nothing ->
+               {model = model , command = Cmd.none}
+
+
+update : Msg -> Model -> { command : Cmd Msg, model : Model}
+update action model =
+    when action is
+       AttemptToHide time ->
+           attemptToHide model time
+
+       ScheduleHide time ->
+           scheduleHide model time
+
+       Show ->
+           show model
+
+
+subscriptions model =
+    (Time.every 100) AttemptToHide
+
+
+view model =
+    div
+    [ onClick Show
+    , class "wrapper"
+    , classList [ {class = "wrapper-active", enabled = model.shown} ]
+    ]
+    [ div [ class "default" ] [ text "Default" ]
+    , div [ class "active" ] [ text "Active" ]
+    ]
+
+
+init : {} -> { model : Model, command : Cmd Msg }
+init _ =
+    {
+        model = { hideAt = Nothing
+        , shown = False
+        }
+        , command = Cmd.none
+    }
+
+
+-- main : Program {} Model Msg
+main =
+    Browser.element
+        { init = init
+        , subscriptions = subscriptions
+        , update = update
+        , view = view
+        }
