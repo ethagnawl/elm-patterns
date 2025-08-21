@@ -33,31 +33,31 @@ badStatusDecoder error =
         defaultErrorMessage =
             "Unknown error. Please wait a moment and try again."
     in
-    case error of
-        Http.BadStatus response ->
-            let
-                maybeErrors =
-                    decodeString
-                        (keyValuePairs (Decode.list Decode.string))
-                        response.body
-            in
-            case maybeErrors of
-                Ok errors ->
-                    case List.head errors of
-                        Just errors ->
-                            String.join " " <| Tuple.second errors
+        case error of
+            Http.BadStatus response ->
+                let
+                    maybeErrors =
+                        decodeString
+                            (keyValuePairs (Decode.list Decode.string))
+                            response.body
+                in
+                    case maybeErrors of
+                        Ok errors ->
+                            case (List.head errors) of
+                                Just errors ->
+                                    String.join " " <| Tuple.second errors
 
-                        Nothing ->
+                                Nothing ->
+                                    defaultErrorMessage
+
+                        Err _ ->
                             defaultErrorMessage
 
-                Err _ ->
-                    defaultErrorMessage
+            Http.NetworkError ->
+                "Authentication service is unavailable."
 
-        Http.NetworkError ->
-            "Authentication service is unavailable."
-
-        _ ->
-            defaultErrorMessage
+            _ ->
+                defaultErrorMessage
 
 
 responseHandler : Model.Model -> Result Http.Error Types.Wrapper -> ( Model.Model, Cmd Action.Action )
@@ -102,7 +102,7 @@ constructPostRequest model apiUrl encoder =
                 |> encoder
                 |> Http.jsonBody
     in
-    Http.post apiUrl body wrapperDecoder
+        Http.post apiUrl body wrapperDecoder
 
 
 apiRequest model apiUrl encoder =
@@ -139,7 +139,7 @@ update msg model =
                 newModel =
                     { defaultModel | apiRoot = model.apiRoot }
             in
-            ( newModel, Cmd.none )
+                ( newModel, Cmd.none )
 
         Action.SetFirstName firstName ->
             ( { model | firstName = firstName }, Cmd.none )
@@ -156,9 +156,8 @@ update msg model =
         Action.TogglePageState ->
             let
                 newPageState =
-                    if model.pageState == Types.Login then
+                    if (model.pageState == Types.Login) then
                         Types.Register
-
                     else
                         Types.Login
 
@@ -171,4 +170,4 @@ update msg model =
                         , pageState = newPageState
                     }
             in
-            ( newModel, Cmd.none )
+                ( newModel, Cmd.none )
