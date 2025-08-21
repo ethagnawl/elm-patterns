@@ -5,10 +5,9 @@ import Http
 import Json.Decode as Decode exposing (..)
 import Json.Encode as Encode exposing (..)
 import Model
-import Types as WTF exposing (..)
+import Types exposing (..)
 
 
--- attributesDecoder : Decoder WTF.Attributes
 attributesDecoder =
     Decode.map3 attributes
         (Decode.field "email" Decode.string)
@@ -16,13 +15,11 @@ attributesDecoder =
         (Decode.field "last_name" Decode.string)
 
 
--- dataDecoder : Decoder Data
 dataDecoder =
     Decode.map data
         (Decode.field "attributes" attributesDecoder)
 
 
--- wrapperDecoder : Decoder Wrapper
 wrapperDecoder =
     Decode.map wrapper
         (Decode.field "data" dataDecoder)
@@ -34,25 +31,17 @@ badStatusDecoder error =
             "Unknown error. Please wait a moment and try again."
     in
         when error is
+            -- This is really lazy. The elm version uses the equivalent of
+            -- BadStatus_ and properly unpacks the body and shows it to the
+            -- user. It would be nice to do that here but it'll require some
+            -- additional rejiggering.
             Http.BadStatus response ->
-                defaultErrorMessage
-                -- let
-                --     maybeErrors =
-                --         decodeString
-                --             (keyValuePairs (Decode.array Decode.string))
-                --             response.body
-                -- in
-                --     when maybeErrors is
-                --         Ok errors ->
-                --             when (Array.get 0 errors) is
-                --                 Just errors_ ->
-                --                     String.join " "  ["oops"]
-
-                --                 Nothing ->
-                --                     defaultErrorMessage
-
-                --         Err _ ->
-                --             defaultErrorMessage
+                let error_ = if response == 401 then
+                                "Invalid email or password"
+                             else
+                               defaultErrorMessage
+                in
+                    error_
 
             Http.NetworkError ->
                 "Authentication service is unavailable."
@@ -61,7 +50,7 @@ badStatusDecoder error =
                 defaultErrorMessage
 
 
--- responseHandler : Model.Model -> Result Http.Error Types.Wrapper -> ( Model.Model, Cmd Action.Action )
+responseHandler : Model.Model -> Result Http.Error Types.Wrapper -> {model: Model.Model, command: Cmd Action.Action}
 responseHandler model result =
     when result is
         Ok response ->
@@ -86,7 +75,6 @@ signInUserEncoder model =
         , {key = "password", value = Encode.string model.password}
         ]
 
-
 signUpUserEncoder : Model.Model -> Encode.Value
 signUpUserEncoder model =
     Encode.object
@@ -96,38 +84,22 @@ signUpUserEncoder model =
         , {key="last_name", value=Encode.string model.lastName}
         ]
 
-
-constructPostRequest model apiUrl encoder =
-    let
-        body =
-            model
-                |> encoder
-                |> Http.jsonBody
-    in
-        body
-        -- Http.post apiUrl body wrapperDecoder
-
-
 apiRequest model apiUrl encoder =
-    -- Http.post Action.ResponseHandler (constructPostRequest model apiUrl encoder)
     Http.post
         { url = apiUrl
         , body = Http.jsonBody (encoder model)
         , expect = Http.expectJson Action.ResponseHandler wrapperDecoder
         }
 
-
 registerUrl : String -> String
 registerUrl apiRoot =
     apiRoot ++ "users"
-
 
 loginUrl : String -> String
 loginUrl apiRoot =
     apiRoot ++ "users/auth/sign_in"
 
-
--- update : Action.Action -> Model.Model -> ( Model.Model, Cmd Action.Action )
+update : Action.Action -> Model.Model -> {model: Model.Model, command: Cmd Action.Action}
 update msg model =
     when msg is
         Action.ClickLogIn ->
