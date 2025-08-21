@@ -1,0 +1,40 @@
+module Types exposing (..)
+
+type alias Attributes =
+    { email : String
+    , firstName : String
+    , lastName : String
+    }
+
+attributes : String -> String -> String -> Attributes
+attributes email firstName lastName =
+    { email = email, firstName = firstName, lastName = lastName }
+
+
+type alias Flags =
+    { apiRoot : String }
+
+flags : String -> Flags
+flags apiRoot =
+    { apiRoot = apiRoot }
+
+
+type PageState
+    = Login
+    | Register
+
+
+type alias Data =
+    { attributes : Attributes }
+
+data : Attributes -> Data
+data attrs =
+    { attributes = attrs }
+
+
+type alias Wrapper =
+    { data : Data }
+
+wrapper : Data -> Wrapper
+wrapper d =
+    { data = d }

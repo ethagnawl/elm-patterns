@@ -1,0 +1,153 @@
+module Update exposing (..)
+
+import Action
+import Http
+import Json.Decode as Decode exposing (..)
+import Json.Encode as Encode exposing (..)
+import Model
+import Types exposing (..)
+
+
+attributesDecoder =
+    Decode.map3 attributes
+        (Decode.field "email" Decode.string)
+        (Decode.field "first_name" Decode.string)
+        (Decode.field "last_name" Decode.string)
+
+
+dataDecoder =
+    Decode.map data
+        (Decode.field "attributes" attributesDecoder)
+
+
+wrapperDecoder =
+    Decode.map wrapper
+        (Decode.field "data" dataDecoder)
+
+
+badStatusDecoder error =
+    let
+        defaultErrorMessage =
+            "Unknown error. Please wait a moment and try again."
+    in
+        when error is
+            -- This is really lazy. The elm version uses the equivalent of
+            -- BadStatus_ and properly unpacks the body and shows it to the
+            -- user. It would be nice to do that here but it'll require some
+            -- additional rejiggering.
+            Http.BadStatus response ->
+                let error_ = if response == 401 then
+                                "Invalid email or password"
+                             else
+                               defaultErrorMessage
+                in
+                    error_
+
+            Http.NetworkError ->
+                "Authentication service is unavailable."
+
+            _ ->
+                defaultErrorMessage
+
+
+responseHandler : Model.Model -> Result Http.Error Types.Wrapper -> {model: Model.Model, command: Cmd Action.Action}
+responseHandler model result =
+    when result is
+        Ok response ->
+            {
+                model = { model
+                | signedIn = True
+                , firstName = response.data.attributes.firstName
+                , lastName = response.data.attributes.lastName
+                , email = response.data.attributes.email
+                }
+                , command = Cmd.none
+            }
+
+        Err error ->
+            {model = { model | errorMsg = badStatusDecoder error }, command = Cmd.none}
+
+
+signInUserEncoder : Model.Model -> Encode.Value
+signInUserEncoder model =
+    Encode.object
+        [ {key = "email", value = Encode.string model.email}
+        , {key = "password", value = Encode.string model.password}
+        ]
+
+signUpUserEncoder : Model.Model -> Encode.Value
+signUpUserEncoder model =
+    Encode.object
+        [ {key="email", value=Encode.string model.email}
+        , {key="password", value=Encode.string model.password}
+        , {key="first_name", value=Encode.string model.firstName}
+        , {key="last_name", value=Encode.string model.lastName}
+        ]
+
+apiRequest model apiUrl encoder =
+    Http.post
+        { url = apiUrl
+        , body = Http.jsonBody (encoder model)
+        , expect = Http.expectJson Action.ResponseHandler wrapperDecoder
+        }
+
+registerUrl : String -> String
+registerUrl apiRoot =
+    apiRoot ++ "users"
+
+loginUrl : String -> String
+loginUrl apiRoot =
+    apiRoot ++ "users/auth/sign_in"
+
+update : Action.Action -> Model.Model -> {model: Model.Model, command: Cmd Action.Action}
+update msg model =
+    when msg is
+        Action.ClickLogIn ->
+            {model=model, command = apiRequest model (loginUrl model.apiRoot) signInUserEncoder}
+
+        Action.ClickRegister ->
+            {model=model, command = apiRequest model (registerUrl model.apiRoot) signUpUserEncoder}
+
+        Action.ResponseHandler response ->
+            responseHandler model response
+
+        Action.LogOut ->
+            let
+                defaultModel =
+                    Model.defaultModel
+
+                newModel =
+                    { defaultModel | apiRoot = model.apiRoot }
+            in
+                {model=newModel, command = Cmd.none}
+
+        Action.SetFirstName firstName ->
+            {model={ model | firstName = firstName }, command = Cmd.none}
+
+        Action.SetLastName lastName ->
+            {model={ model | lastName = lastName }, command = Cmd.none}
+
+        Action.SetPassword password ->
+            {model={ model | password = password }, command = Cmd.none}
+
+        Action.SetEmail email ->
+            {model={ model | email = email }, command = Cmd.none}
+
+        Action.TogglePageState ->
+            let
+                newPageState =
+                    if (model.pageState == Login) then
+                        Register
+                    else
+                        Login
+
+                defaultModel =
+                    Model.defaultModel
+
+                newModel =
+                    { defaultModel
+                        | apiRoot = model.apiRoot
+                        , pageState = newPageState
+                    }
+            in
+                {model=newModel, command = Cmd.none}
