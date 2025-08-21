@@ -15,7 +15,6 @@ init flags =
         defaultModel =
             Model.defaultModel
     in
-        Debug.log (Debug.toString flags)
         {model = {defaultModel | signedIn=False, apiRoot = flags.apiRoot}, command = Cmd.none}
 
 
