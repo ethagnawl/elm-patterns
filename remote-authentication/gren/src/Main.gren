@@ -1,0 +1,29 @@
+module Main exposing (..)
+
+import Browser
+import Action
+import Html exposing (..)
+import Model
+import Types
+import Update
+import View
+
+
+init : {apiRoot: String} -> { model : Model.Model, command : Cmd Action.Action }
+init flags =
+    let
+        defaultModel =
+            Model.defaultModel
+    in
+        Debug.log (Debug.toString flags)
+        {model = {defaultModel | signedIn=False, apiRoot = flags.apiRoot}, command = Cmd.none}
+
+
+main : Program Types.Flags Model.Model Action.Action
+main =
+    Browser.element
+        { init = \flags -> init flags
+        , subscriptions = \_ -> Sub.none
+        , update = Update.update
+        , view = View.view
+        }

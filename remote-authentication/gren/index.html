@@ -1,0 +1,17 @@
+<!doctype html>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css" />
+<link rel="stylesheet" href="mui.min.css" />
+<title>Elm UI Patterns - Remote Authentication Demo</title>
+<body>
+    <div id="app"></div>
+    <script src="output/gren.js"></script>
+    <script>
+    var node = document.getElementById("app");
+    var elm_app = Gren.Main.init({node: node, flags: {"apiRoot": "http://localhost:3000/"}});
+
+    var wakeup = new XMLHttpRequest();
+    wakeup.addEventListener("load", function () {});
+    wakeup.open("GET", "http://localhost:3000/heartbeat");
+    wakeup.send();
+    </script>
+</body>

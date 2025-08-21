@@ -1,0 +1,44 @@
+module Types exposing (..)
+
+type alias Attributes =
+    { email : String
+    , firstName : String
+    , lastName : String
+    }
+
+-- Constructor function for Attributes
+attributes : String -> String -> String -> Attributes
+attributes email firstName lastName =
+    { email = email, firstName = firstName, lastName = lastName }
+
+
+type alias Flags =
+    { apiRoot : String }
+
+-- Constructor function for Flags
+flags : String -> Flags
+flags apiRoot =
+    { apiRoot = apiRoot }
+
+
+type PageState
+    = Login
+    | Register
+
+
+type alias Data =
+    { attributes : Attributes }
+
+-- Constructor function for Data
+data : Attributes -> Data
+data attrs =
+    { attributes = attrs }
+
+
+type alias Wrapper =
+    { data : Data }
+
+-- Constructor function for Wrapper
+wrapper : Data -> Wrapper
+wrapper d =
+    { data = d }
