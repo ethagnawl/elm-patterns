@@ -6,7 +6,6 @@ type alias Attributes =
     , lastName : String
     }
 
--- Constructor function for Attributes
 attributes : String -> String -> String -> Attributes
 attributes email firstName lastName =
     { email = email, firstName = firstName, lastName = lastName }
@@ -15,7 +14,6 @@ attributes email firstName lastName =
 type alias Flags =
     { apiRoot : String }
 
--- Constructor function for Flags
 flags : String -> Flags
 flags apiRoot =
     { apiRoot = apiRoot }
@@ -29,7 +27,6 @@ type PageState
 type alias Data =
     { attributes : Attributes }
 
--- Constructor function for Data
 data : Attributes -> Data
 data attrs =
     { attributes = attrs }
@@ -38,7 +35,6 @@ data attrs =
 type alias Wrapper =
     { data : Data }
 
--- Constructor function for Wrapper
 wrapper : Data -> Wrapper
 wrapper d =
     { data = d }
