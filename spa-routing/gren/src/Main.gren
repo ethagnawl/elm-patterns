@@ -1,0 +1,230 @@
+-- _Heavily_ inspired by: github.com:simon-larsson/elm-spa-template.git
+
+
+
+module Main exposing (..)
+
+import Browser exposing (Document, UrlRequest(..))
+import Browser.Navigation as Nav
+import Html exposing (..)
+import Html.Attributes as Attr exposing (..)
+import Json.Decode as Decode exposing (Value)
+import Url exposing (Url)
+import Url.Parser as P exposing (Parser, map, (</>), (<?>), s, top)
+
+
+
+type Route
+    = HomeRoute
+    | AlbumRoute String
+
+
+type alias Album =
+    { coverThumbnailUrl : String
+    , description : String
+    , slug : String
+    , title : String
+    , wikipediaUrl : String
+    }
+
+
+type alias Model =
+    { selectedAlbum : Maybe Album
+    , albums : Array Album
+    , key : Nav.Key
+    }
+
+
+type Msg
+    = SetRoute (Maybe Route)
+    | UrlRequested UrlRequest
+    | UrlChanged Url
+
+
+routeMatcher : Parser (Route -> a) a
+routeMatcher =
+    P.oneOf
+        [ P.map HomeRoute (P.s "")
+        , P.map AlbumRoute (P.s "albums" </> P.string)
+        ]
+
+
+routeToString : Route -> String
+routeToString page =
+    when page is
+        AlbumRoute slug ->
+            "#/albums/" ++ slug
+
+        HomeRoute ->
+            ""
+
+
+href : Route -> Attribute msg
+href route =
+    Attr.href (routeToString route)
+
+
+-- fromLocation : Location -> Maybe Route
+-- FIXME or initial routes won't work!
+fromLocation location =
+    Just HomeRoute
+    -- if String.isEmpty location.hash then
+    --     Just HomeRoute
+    -- else
+    --     Maybe.withDefault (\_ -> HomeRoute) (P.fragment (location))
+    --     -- P.parse routeMatcher location
+
+
+findAlbumBySlug : Array Album -> String -> Maybe Album
+findAlbumBySlug albums_ slug =
+    Array.keepIf (\n -> n.slug == slug) albums_ |> (Array.get 0)
+
+
+setRoute : Maybe Route -> Model -> {model: Model, command: Cmd Msg}
+setRoute route model =
+    when route is
+        Just (AlbumRoute slug) ->
+            let
+                selectedAlbum =
+                    findAlbumBySlug model.albums slug
+            in
+                {model={ model | selectedAlbum = selectedAlbum }, command=Cmd.none}
+
+        _ ->
+            {model=model, command=Cmd.none}
+
+
+
+-- Album data taken from respective Wikipedia pages
+albums : Array Album
+albums =
+    [ { coverThumbnailUrl = "https://upload.wikimedia.org/wikipedia/en/6/6b/Dsothunder-250.jpg"
+      , description = "Delicate Sound of Thunder is a double live album by the English progressive rock band Pink Floyd which was recorded over five nights at the Nassau Coliseum on Long Island, New York in August 1988 and mixed at Abbey Road Studios in September 1988. It was released on 22 November 1988, through EMI Records in the United Kingdom and Columbia Records in the United States. - Wikipedia"
+      , slug = "delicate-sound-of-thunder"
+      , title = "Delicate Sound of Thunder"
+      , wikipediaUrl = "https://en.wikipedia.org/wiki/Delicate_Sound_of_Thunder"
+      }
+    , { coverThumbnailUrl = "https://upload.wikimedia.org/wikipedia/en/3/38/Is_there_anybody_out_there%3F_40273_big.jpg"
+      , description = "Is There Anybody Out There? The Wall Live 1980-81 is a live album released by Pink Floyd in 2000. It is a live rendition of The Wall, produced and engineered by James Guthrie, with tracks selected from the August 1980 and June 1981 performances at Earls Court in London. The album was first released in The Netherlands by EMI Records on 23 March 2000, who released a limited edition in the United Kingdom on 27 March. The general release followed on 18 April 2000 with US and Canadian distribution by Columbia Records. - Wikipedia"
+      , slug = "is-there-anybody-out-there"
+      , title = "Is There Anybody Out There?"
+      , wikipediaUrl = "https://en.wikipedia.org/wiki/Is_There_Anybody_Out_There%3F_The_Wall_Live_1980%E2%80%9381"
+      }
+    , { coverThumbnailUrl = "https://upload.wikimedia.org/wikipedia/en/3/36/Pink_Floyd_-_Pulse.png"
+      , description = "Pulse (stylised as p·u·l·s·e) is a live double album by the English progressive rock band Pink Floyd. It was originally released on 29 May 1995, on the label EMI in the United Kingdom and on 6 June 1995 by Columbia in the United States.[3]\n\nThe album was recorded during the band's Division Bell Tour in 1994, specifically the UK and European leg, which ran from July to October 1994. - Wikipedia"
+      , slug = "pulse"
+      , title = "Pulse"
+      , wikipediaUrl = "https://en.wikipedia.org/wiki/Pulse_(Pink_Floyd_album)"
+      }
+    ]
+
+
+init val location key =
+    setRoute (fromLocation location)
+        { selectedAlbum = Nothing
+        , albums = albums
+        , key = key
+        }
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.none
+
+
+view : Model -> Document Msg
+view model =
+    let body_ = when model.selectedAlbum is
+            Just album ->
+                div [ class "album" ]
+                    [ h1 [ class "title" ] [ text album.title ]
+                    , img
+                        [ class "cover"
+                        , src album.coverThumbnailUrl
+                        ]
+                        []
+                    , div [] [ p [ class "description" ] [ text album.description ] ]
+                    ]
+
+            _ ->
+                div [ class "albums-wrapper" ]
+                    ([ h1 [] [ text "Live Pink Floyd Albums:" ]
+                     , ul [ class "albums" ]
+                        (Array.map
+                            (\v ->
+                                li [ class "album" ]
+                                    [ a
+                                        [ href (AlbumRoute v.slug) ]
+                                        [ text v.title ]
+                                    ]
+                            )
+                            model.albums
+                        )
+                     ]
+                    )
+
+    in
+      { title = "Pink Floyd - Live Albums" , body = [body_] }
+
+
+parseFragment url =
+    url.fragment
+
+parseAlbumSlugFromUrl : Url.Url -> Maybe String
+parseAlbumSlugFromUrl url =
+    when url.fragment is
+        Nothing ->
+            Nothing
+        Just fragment ->
+            when String.split "/" fragment is
+                ["", "albums", slug] ->
+                    Just slug
+
+                _ ->
+                    Nothing
+
+update : Msg -> Model -> {model: Model, command: Cmd Msg}
+update msg model =
+    when msg is
+        SetRoute route ->
+            when route is
+                Just (AlbumRoute slug) ->
+                    let
+                        selectedAlbum =
+                            findAlbumBySlug model.albums slug
+                    in
+                        {model={ model | selectedAlbum = selectedAlbum }, command=Cmd.none}
+
+                _ ->
+                    {model={ model | selectedAlbum = Nothing }, command=Cmd.none}
+        UrlRequested url__ ->
+            when url__ is
+                Internal x ->
+                    when parseFragment x is
+                        Nothing ->
+                            {model=model, command=Cmd.none}
+                        Just fragment ->
+                            {model=model, command=Nav.pushUrl model.key ("#" ++ fragment)}
+                _ ->
+                    {model=model, command=Cmd.none}
+        UrlChanged url__ ->
+            when parseAlbumSlugFromUrl url__ is
+                Just slug ->
+                    let
+                        selectedAlbum = findAlbumBySlug model.albums slug
+                    in
+                        {model={ model | selectedAlbum = selectedAlbum }, command=Cmd.none}
+                _ ->
+                    {model={ model | selectedAlbum = Nothing }, command=Cmd.none}
+
+
+main : Program {} Model Msg
+main =
+    Browser.application
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        , onUrlChange = UrlChanged
+        , onUrlRequest = UrlRequested
+        }
