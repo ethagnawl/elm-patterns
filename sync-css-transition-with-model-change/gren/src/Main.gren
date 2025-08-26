@@ -1,18 +1,13 @@
 module Main exposing (..)
 
 import Browser
-import Css
-import Css.Global
-import Css.Transitions
-import Html
-import Html.Styled
-import Html.Styled.Attributes
-import Html.Styled.Events
-import Html.Styled.Keyed
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (..)
+import Json.Decode as Decode
 import Process
 import Task
 import Time
-
 
 type ViewState
     = Start
@@ -36,16 +31,17 @@ defaultModel =
     }
 
 
-styles =
-    { colors =
-        { lightGreen = Css.rgb 212 238 172
-        , darkGreen = Css.rgb 140 176 86
-        }
-    }
+
+-- styles =
+--     { colors =
+--         { lightGreen = Css.rgb 212 238 172
+--         , darkGreen = Css.rgb 140 176 86
+--         }
+--     }
 
 
 init _ =
-    ( defaultModel, Cmd.none )
+    {model=defaultModel, command=Cmd.none}
 
 
 visibilityHelper state =
@@ -56,17 +52,18 @@ visibilityHelper state =
             else
                 "hidden"
     in
-        Html.Styled.Attributes.style "visibility" display
+        Html.Attributes.style "visibility" display
 
 
 loadingDelay =
     4000
 
 
+view : Model -> Browser.Document Action
 view model =
     let
         state =
-            case model.viewState of
+            when model.viewState is
                 Start ->
                     "Start"
 
@@ -77,98 +74,88 @@ view model =
                     "Done"
 
         start =
-            ( "start"
-            , Html.Styled.div
-                [ (visibilityHelper (model.viewState == Start))
-                , Html.Styled.Attributes.css
-                    [ Css.color styles.colors.lightGreen
-                    , Css.cursor Css.pointer
-                    , Css.fontFamily Css.sansSerif
-                    , Css.fontSize (Css.rem 4)
-                    , Css.left (Css.px 0)
-                    , Css.position Css.fixed
-                    , Css.right (Css.px 0)
-                    , Css.textAlign Css.center
-                    , Css.top (Css.pct 50)
-                    , Css.transform (Css.translateY (Css.pct -50))
-                    ]
-                , Html.Styled.Events.onClick DoLoad
+            div
+                [
+                    (visibilityHelper (model.viewState == Start)),
+                    -- Html.Styled.Attributes.css[ Css.color styles.colors.lightGreen, Css.cursor Css.pointer, Css.fontFamily Css.sansSerif, Css.fontSize (Css.rem 4), Css.left (Css.px 0), Css.position Css.fixed, Css.right (Css.px 0), Css.textAlign Css.center, Css.top (Css.pct 50), Css.transform (Css.translateY (Css.pct -50))]--,
+                    -- Html.Styled.Events.onClick DoLoad,
+                    Html.Events.onClick DoLoad
                 ]
-                [ Html.Styled.text "Click to start!" ]
-            )
+                [ text "Click to start!" ]
 
         loading =
-            ( "loading"
-            , Html.Styled.div
+            div
                 [ (visibilityHelper (model.viewState == Load))
-                , Html.Styled.Attributes.class
+                , Html.Attributes.class
                     (if (model.viewState == Load) then
                         "loading"
                      else
                         ""
                     )
-                , Html.Styled.Attributes.css
-                    [ Css.color styles.colors.lightGreen
-                    , Css.fontFamily Css.sansSerif
-                    , Css.fontSize (Css.rem 4)
-                    , Css.left (Css.px 0)
-                    , Css.position Css.fixed
-                    , Css.right (Css.px 0)
-                    , Css.textAlign Css.center
-                    , Css.top (Css.pct 50)
-                    , Css.transform (Css.translateY (Css.pct -50))
-                    , Css.Transitions.transition
-                        [ Css.Transitions.color3 loadingDelay 0 Css.Transitions.linear ]
-                    , Css.Global.withClass "loading"
-                        [ Css.color styles.colors.darkGreen
-                        ]
+                    , style "animation-duration" (
+                        if (model.viewState == Load) then
+                            ((String.fromInt loadingDelay) ++"ms")
+                        else
+                            ""
+                    )
+                -- , Html.Styled.Attributes.css
+                --     [ Css.color styles.colors.lightGreen
+                --     , Css.fontFamily Css.sansSerif
+                --     , Css.fontSize (Css.rem 4)
+                --     , Css.left (Css.px 0)
+                --     , Css.position Css.fixed
+                --     , Css.right (Css.px 0)
+                --     , Css.textAlign Css.center
+                --     , Css.top (Css.pct 50)
+                --     , Css.transform (Css.translateY (Css.pct -50))
+                --     , Css.Transitions.transition
+                --         [ Css.Transitions.color3 loadingDelay 0 Css.Transitions.linear ]
+                --     , Css.Global.withClass "loading"
+                --         [ Css.color styles.colors.darkGreen
+                --         ]
+                --     ]
+                ]
+                [ p [] [ text "Loading ..." ]
+                , span
+                    [
+                        -- Html.Styled.Attributes.css [ Css.fontSize (Css.rem 1) ]
                     ]
+                    [ text "(Note: State transition is kept in sync with CSS transition!)" ]
                 ]
-                [ Html.Styled.p [] [ Html.Styled.text "Loading ..." ]
-                , Html.Styled.span
-                    [ Html.Styled.Attributes.css [ Css.fontSize (Css.rem 1) ] ]
-                    [ Html.Styled.text "(Note: State transition is kept in sync with CSS transition!)" ]
-                ]
-            )
 
         done =
-            ( "done"
-            , Html.Styled.div
+            div
                 [ (visibilityHelper (model.viewState == Done))
-                , Html.Styled.Attributes.css
-                    [ Css.color styles.colors.lightGreen
-                    , Css.fontFamily Css.sansSerif
-                    , Css.fontSize (Css.rem 4)
-                    , Css.left (Css.px 0)
-                    , Css.position Css.fixed
-                    , Css.right (Css.px 0)
-                    , Css.textAlign Css.center
-                    , Css.top (Css.pct 50)
-                    , Css.transform (Css.translateY (Css.pct -50))
-                    ]
+                -- , Html.Styled.Attributes.css
+                --     [ Css.color styles.colors.lightGreen
+                --     , Css.fontFamily Css.sansSerif
+                --     , Css.fontSize (Css.rem 4)
+                --     , Css.left (Css.px 0)
+                --     , Css.position Css.fixed
+                --     , Css.right (Css.px 0)
+                --     , Css.textAlign Css.center
+                --     , Css.top (Css.pct 50)
+                --     , Css.transform (Css.translateY (Css.pct -50))
+                --     ]
                 ]
-                [ Html.Styled.text "Done!" ]
-            )
+                [
+                    -- Html.Styled.text "Done!"
+                    text "Done!"
+                ]
 
-        body_ =
-            List.singleton <|
-                Html.Styled.toUnstyled <|
-                    Html.Styled.Keyed.node "div"
-                        [ Html.Styled.Attributes.css
-                            [ Css.backgroundColor styles.colors.darkGreen
-                            , Css.height (Css.vh 100)
-                            , Css.left (Css.px 0)
-                            , Css.position Css.fixed
-                            , Css.right (Css.px 0)
-                            , Css.top (Css.px 0)
-                            ]
+        body_ = [div
+                    []
+                    [
+                        div
+                        []
+                        [
+                            start
+                            , loading
+                            , done
                         ]
-                        [ start
-                        , loading
-                        , done
-                        ]
+                    ]]
     in
-        { body = body_, title = "" }
+        { body = body_, title = state }
 
 
 delay time msg =
@@ -177,15 +164,15 @@ delay time msg =
 
 
 update msg model =
-    case msg of
+    when msg is
         DoStart ->
-            ( { model | viewState = Start }, Cmd.none )
+            {model={ model | viewState = Start }, command=Cmd.none}
 
         DoLoad ->
-            ( { model | viewState = Load }, (delay loadingDelay DoDone) )
+            {model={ model | viewState = Load }, command=(delay loadingDelay DoDone)}
 
         DoDone ->
-            ( { model | viewState = Done }, Cmd.none )
+            {model={ model | viewState = Done }, command=Cmd.none}
 
 
 type alias Flags =
