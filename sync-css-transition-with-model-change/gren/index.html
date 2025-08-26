@@ -1,0 +1,49 @@
+<html>
+<head>
+  <style>
+    .wrapper {
+      background-color: rgb(140, 176, 86);
+      height: 100vh;
+      left: 0px;
+      position: fixed;
+      right: 0px;
+      top: 0px;
+    }
+
+    .wrapper div {
+      color: rgb(212, 238, 172);
+      font-family: sans-serif;
+      font-size: 4rem;
+      left: 0px;
+      position: fixed;
+      right: 0px;
+      text-align: center;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .loading {
+      animation-name: fadeMe;
+      opacity: 1;
+    }
+
+    @keyframes fadeMe {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main></main>
+    <script src="output/gren.js"></script>
+    <script>
+        var app = Gren.Main.init({
+            node: document.getElementById('app')
+        });
+    </script>
+</body>
+</html>

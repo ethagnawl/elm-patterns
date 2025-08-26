@@ -1,0 +1,145 @@
+module Main exposing (..)
+
+import Browser
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (..)
+import Json.Decode as Decode
+import Process
+import Task
+import Time
+
+type ViewState
+    = Start
+    | Load
+    | Done
+
+
+type Action
+    = DoStart
+    | DoLoad
+    | DoDone
+
+
+type alias Model =
+    { viewState : ViewState }
+
+
+defaultModel =
+    { viewState = Start }
+
+init _ =
+    {model=defaultModel, command=Cmd.none}
+
+
+visibilityHelper state =
+    let
+        display =
+            if state then
+                "visible"
+            else
+                "hidden"
+    in
+        Html.Attributes.style "visibility" display
+
+
+loadingDelay =
+    4000
+
+
+view : Model -> Browser.Document Action
+view model =
+    let
+        state =
+            when model.viewState is
+                Start ->
+                    "Start"
+
+                Load ->
+                    "Load"
+
+                Done ->
+                    "Done"
+
+        stateDebugger = div [Html.Attributes.class "state-debugger"] [text state]
+
+        start =
+            div
+                [
+                    (visibilityHelper (model.viewState == Start)),
+                    Html.Events.onClick DoLoad
+                ]
+                [ text "Click to start!" ]
+
+        loading =
+            div
+                [ (visibilityHelper (model.viewState == Load))
+                , Html.Attributes.class
+                    (if (model.viewState == Load) then
+                        "loading"
+                     else
+                        ""
+                    )
+                    , style "animation-duration" (
+                        if (model.viewState == Load) then
+                            ((String.fromInt loadingDelay) ++"ms")
+                        else
+                            ""
+                    )
+                ]
+                [ p [] [ text "Loading ..." ]
+                , span
+                    []
+                    [ text "(Note: State transition is kept in sync with CSS transition!)" ]
+                ]
+
+        done =
+            div
+                [ (visibilityHelper (model.viewState == Done)) ]
+                [ text "Done!" ]
+
+        body_ = [div
+                    [Html.Attributes.class "wrapper"]
+                    [
+                        div
+                        []
+                        [
+                            -- stateDebugger
+                              start
+                            , loading
+                            , done
+                        ]
+                    ]]
+    in
+        { body = body_, title = state }
+
+
+delay time msg =
+    Process.sleep time
+        |> Task.perform (\_ -> msg)
+
+
+update msg model =
+    when msg is
+        DoStart ->
+            {model={ model | viewState = Start }, command=Cmd.none}
+
+        DoLoad ->
+            {model={ model | viewState = Load }, command=(delay loadingDelay DoDone)}
+
+        DoDone ->
+            {model={ model | viewState = Done }, command=Cmd.none}
+
+
+type alias Flags =
+    {}
+
+
+main : Program Flags Model Action
+main =
+    Browser.document
+        { init = init
+        , subscriptions = \_ -> Sub.none
+        , update = update
+        , view = view
+        }
