@@ -22,23 +22,11 @@ type Action
 
 
 type alias Model =
-    { viewState : ViewState
-    }
+    { viewState : ViewState }
 
 
 defaultModel =
-    { viewState = Start
-    }
-
-
-
--- styles =
---     { colors =
---         { lightGreen = Css.rgb 212 238 172
---         , darkGreen = Css.rgb 140 176 86
---         }
---     }
-
+    { viewState = Start }
 
 init _ =
     {model=defaultModel, command=Cmd.none}
@@ -73,12 +61,12 @@ view model =
                 Done ->
                     "Done"
 
+        stateDebugger = div [Html.Attributes.class "state-debugger"] [text state]
+
         start =
             div
                 [
                     (visibilityHelper (model.viewState == Start)),
-                    -- Html.Styled.Attributes.css[ Css.color styles.colors.lightGreen, Css.cursor Css.pointer, Css.fontFamily Css.sansSerif, Css.fontSize (Css.rem 4), Css.left (Css.px 0), Css.position Css.fixed, Css.right (Css.px 0), Css.textAlign Css.center, Css.top (Css.pct 50), Css.transform (Css.translateY (Css.pct -50))]--,
-                    -- Html.Styled.Events.onClick DoLoad,
                     Html.Events.onClick DoLoad
                 ]
                 [ text "Click to start!" ]
@@ -98,58 +86,26 @@ view model =
                         else
                             ""
                     )
-                -- , Html.Styled.Attributes.css
-                --     [ Css.color styles.colors.lightGreen
-                --     , Css.fontFamily Css.sansSerif
-                --     , Css.fontSize (Css.rem 4)
-                --     , Css.left (Css.px 0)
-                --     , Css.position Css.fixed
-                --     , Css.right (Css.px 0)
-                --     , Css.textAlign Css.center
-                --     , Css.top (Css.pct 50)
-                --     , Css.transform (Css.translateY (Css.pct -50))
-                --     , Css.Transitions.transition
-                --         [ Css.Transitions.color3 loadingDelay 0 Css.Transitions.linear ]
-                --     , Css.Global.withClass "loading"
-                --         [ Css.color styles.colors.darkGreen
-                --         ]
-                --     ]
                 ]
                 [ p [] [ text "Loading ..." ]
                 , span
-                    [
-                        -- Html.Styled.Attributes.css [ Css.fontSize (Css.rem 1) ]
-                    ]
+                    []
                     [ text "(Note: State transition is kept in sync with CSS transition!)" ]
                 ]
 
         done =
             div
-                [ (visibilityHelper (model.viewState == Done))
-                -- , Html.Styled.Attributes.css
-                --     [ Css.color styles.colors.lightGreen
-                --     , Css.fontFamily Css.sansSerif
-                --     , Css.fontSize (Css.rem 4)
-                --     , Css.left (Css.px 0)
-                --     , Css.position Css.fixed
-                --     , Css.right (Css.px 0)
-                --     , Css.textAlign Css.center
-                --     , Css.top (Css.pct 50)
-                --     , Css.transform (Css.translateY (Css.pct -50))
-                --     ]
-                ]
-                [
-                    -- Html.Styled.text "Done!"
-                    text "Done!"
-                ]
+                [ (visibilityHelper (model.viewState == Done)) ]
+                [ text "Done!" ]
 
         body_ = [div
-                    []
+                    [Html.Attributes.class "wrapper"]
                     [
                         div
                         []
                         [
-                            start
+                            -- stateDebugger
+                              start
                             , loading
                             , done
                         ]
