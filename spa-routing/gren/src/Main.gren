@@ -1,17 +1,12 @@
 -- _Heavily_ inspired by: github.com:simon-larsson/elm-spa-template.git
 
-
-
 module Main exposing (..)
 
 import Browser exposing (Document, UrlRequest(..))
 import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes as Attr exposing (..)
-import Json.Decode as Decode exposing (Value)
 import Url exposing (Url)
-import Url.Parser as P exposing (Parser, map, (</>), (<?>), s, top)
-
 
 
 type Route
@@ -29,24 +24,14 @@ type alias Album =
 
 
 type alias Model =
-    { selectedAlbum : Maybe Album
-    , albums : Array Album
+    {
+      albums : Array Album
     , key : Nav.Key
+    , selectedAlbum : Maybe Album
     }
 
 
-type Msg
-    = SetRoute (Maybe Route)
-    | UrlRequested UrlRequest
-    | UrlChanged Url
-
-
-routeMatcher : Parser (Route -> a) a
-routeMatcher =
-    P.oneOf
-        [ P.map HomeRoute (P.s "")
-        , P.map AlbumRoute (P.s "albums" </> P.string)
-        ]
+type Msg = UrlChanged Url | UrlRequested UrlRequest
 
 
 routeToString : Route -> String
@@ -54,7 +39,6 @@ routeToString page =
     when page is
         AlbumRoute slug ->
             "#/albums/" ++ slug
-
         HomeRoute ->
             ""
 
@@ -64,15 +48,13 @@ href route =
     Attr.href (routeToString route)
 
 
--- fromLocation : Location -> Maybe Route
--- FIXME or initial routes won't work!
-fromLocation location =
-    Just HomeRoute
-    -- if String.isEmpty location.hash then
-    --     Just HomeRoute
-    -- else
-    --     Maybe.withDefault (\_ -> HomeRoute) (P.fragment (location))
-    --     -- P.parse routeMatcher location
+parseRouteFromUrl : Url.Url -> Maybe Route
+parseRouteFromUrl url =
+    when url.fragment |> Maybe.map (String.split "/") is
+        Just ["", "albums", slug] ->
+            Just (AlbumRoute slug)
+        _ ->
+            Just HomeRoute
 
 
 findAlbumBySlug : Array Album -> String -> Maybe Album
@@ -80,19 +62,15 @@ findAlbumBySlug albums_ slug =
     Array.keepIf (\n -> n.slug == slug) albums_ |> (Array.get 0)
 
 
-setRoute : Maybe Route -> Model -> {model: Model, command: Cmd Msg}
-setRoute route model =
-    when route is
-        Just (AlbumRoute slug) ->
-            let
-                selectedAlbum =
-                    findAlbumBySlug model.albums slug
-            in
-                {model={ model | selectedAlbum = selectedAlbum }, command=Cmd.none}
-
-        _ ->
-            {model=model, command=Cmd.none}
-
+setSelectedAlbumFromRoute : Maybe Route -> Model -> {model: Model, command: Cmd Msg}
+setSelectedAlbumFromRoute route model =
+    let selectedAlbum = when route is
+            Just (AlbumRoute slug) ->
+                findAlbumBySlug model.albums slug
+            _ ->
+                Nothing
+    in
+        {model={ model | selectedAlbum = selectedAlbum }, command=Cmd.none}
 
 
 -- Album data taken from respective Wikipedia pages
@@ -119,11 +97,13 @@ albums =
     ]
 
 
-init val location key =
-    setRoute (fromLocation location)
-        { selectedAlbum = Nothing
-        , albums = albums
+init : flags -> Url -> Nav.Key -> {command: Cmd Msg, model: Model}
+init _ url key =
+    setSelectedAlbumFromRoute (parseRouteFromUrl url)
+        {
+          albums = albums
         , key = key
+        , selectedAlbum = Nothing
         }
 
 
@@ -134,7 +114,7 @@ subscriptions _ =
 
 view : Model -> Document Msg
 view model =
-    let body_ = when model.selectedAlbum is
+    let body = when model.selectedAlbum is
             Just album ->
                 div [ class "album" ]
                     [ h1 [ class "title" ] [ text album.title ]
@@ -164,67 +144,41 @@ view model =
                     )
 
     in
-      { title = "Pink Floyd - Live Albums" , body = [body_] }
+      {
+          body = [body]
+      ,   title = "Pink Floyd - Live Albums"
+      }
 
-
-parseFragment url =
-    url.fragment
-
-parseAlbumSlugFromUrl : Url.Url -> Maybe String
-parseAlbumSlugFromUrl url =
-    when url.fragment is
-        Nothing ->
-            Nothing
-        Just fragment ->
-            when String.split "/" fragment is
-                ["", "albums", slug] ->
-                    Just slug
-
-                _ ->
-                    Nothing
 
 update : Msg -> Model -> {model: Model, command: Cmd Msg}
 update msg model =
     when msg is
-        SetRoute route ->
-            when route is
-                Just (AlbumRoute slug) ->
-                    let
-                        selectedAlbum =
-                            findAlbumBySlug model.albums slug
-                    in
-                        {model={ model | selectedAlbum = selectedAlbum }, command=Cmd.none}
-
-                _ ->
-                    {model={ model | selectedAlbum = Nothing }, command=Cmd.none}
-        UrlRequested url__ ->
-            when url__ is
-                Internal x ->
-                    when parseFragment x is
+        UrlChanged url ->
+            setSelectedAlbumFromRoute (parseRouteFromUrl url) model
+        UrlRequested url ->
+            when url is
+                Internal internal_url ->
+                    when internal_url.fragment is
+                        Just fragment ->
+                            -- TODO: helper for url update
+                            -- it's probably not greate that the hash change
+                            -- is what's driving the model change but :shrug:?
+                            {model=model, command=Nav.pushUrl model.key ("#" ++ fragment)}
                         Nothing ->
                             {model=model, command=Cmd.none}
-                        Just fragment ->
-                            {model=model, command=Nav.pushUrl model.key ("#" ++ fragment)}
                 _ ->
+                    -- TODO: test this scenario
                     {model=model, command=Cmd.none}
-        UrlChanged url__ ->
-            when parseAlbumSlugFromUrl url__ is
-                Just slug ->
-                    let
-                        selectedAlbum = findAlbumBySlug model.albums slug
-                    in
-                        {model={ model | selectedAlbum = selectedAlbum }, command=Cmd.none}
-                _ ->
-                    {model={ model | selectedAlbum = Nothing }, command=Cmd.none}
 
 
 main : Program {} Model Msg
 main =
     Browser.application
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
+        {
+          init = init
         , onUrlChange = UrlChanged
         , onUrlRequest = UrlRequested
+        , subscriptions = subscriptions
+        , update = update
+        , view = view
         }
