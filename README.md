@@ -39,4 +39,3 @@ helpful with older versions of Elm which can be tricky to locate and install.
 - port older apps to 0.19
 - rework SPA routing to use 0.19 feature set
 - animation example
-- port all examples to Gren
