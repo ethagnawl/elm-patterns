@@ -6,8 +6,9 @@ Additionally, subsequent events which occur before N seconds have passed will
 reset the timer.
 
 ## Demo
-- https://ellie-app.com/7McpxnpgQa1/0
+- https://pdoherty-demos.s3.us-east-1.amazonaws.com/decaying-class-name/gren/index.html
 
-## Running the example:
-- `npm install --global elm elm-live` (if you haven't already)
-- `elm-live src/Main.elm --output=elm.js --open`
+## Running the example from this directory:
+- `npm install --global gren` (if you haven't already)
+- `make` or `gren make Main --output=./output/gren.js`
+- `python3 -m http.server $PORT`

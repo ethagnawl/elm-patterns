@@ -19,11 +19,12 @@ using an external stylesheet, but you'll need to ensure the delay/transition are
 kept in sync.
 
 ## Demo
-- https://ellie-app.com/3wTR8tFFjL3a1
+- https://pdoherty-demos.s3.us-east-1.amazonaws.com/sync-css-transition-with-model-change/gren/index.html
 
-## Running the example:
-- `npm install --global elm elm-live` (if you haven't already)
-- `elm-live src/Main.elm`
+## Running the example from this directory:
+- `npm install --global gren` (if you haven't already)
+- `make` or `gren make Main --output=./output/gren.js`
+- `python3 -m http.server $PORT`
 
 ## Resources
 - ["How to achieve behavior of setTimeout in Elm"](https://stackoverflow.com/questions/40599512/how-to-achieve-behavior-of-settimeout-in-elm/44354637#44354637)

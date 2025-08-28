@@ -7,7 +7,7 @@ user events.)
 TODO
 
 ## Demo
-- https://s3.amazonaws.com/pdoherty-demos/creepy-spyware-demo/index.html
+- https://pdoherty-demos.s3.us-east-1.amazonaws.com/creepy-spyware-demo/gren/index.html
 
 ## Running the example from this directory:
 - `npm install --global gren` (if you haven't already)
