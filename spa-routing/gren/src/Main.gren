@@ -1,0 +1,184 @@
+-- _Heavily_ inspired by: github.com:simon-larsson/elm-spa-template.git
+
+module Main exposing (..)
+
+import Browser exposing (Document, UrlRequest(..))
+import Browser.Navigation as Nav
+import Html exposing (..)
+import Html.Attributes as Attr exposing (..)
+import Url exposing (Url)
+
+
+type Route
+    = HomeRoute
+    | AlbumRoute String
+
+
+type alias Album =
+    { coverThumbnailUrl : String
+    , description : String
+    , slug : String
+    , title : String
+    , wikipediaUrl : String
+    }
+
+
+type alias Model =
+    {
+      albums : Array Album
+    , key : Nav.Key
+    , selectedAlbum : Maybe Album
+    }
+
+
+type Msg = UrlChanged Url | UrlRequested UrlRequest
+
+
+routeToString : Route -> String
+routeToString page =
+    when page is
+        AlbumRoute slug ->
+            "#/albums/" ++ slug
+        HomeRoute ->
+            ""
+
+
+href : Route -> Attribute msg
+href route =
+    Attr.href (routeToString route)
+
+
+parseRouteFromUrl : Url.Url -> Maybe Route
+parseRouteFromUrl url =
+    when url.fragment |> Maybe.map (String.split "/") is
+        Just ["", "albums", slug] ->
+            Just (AlbumRoute slug)
+        _ ->
+            Just HomeRoute
+
+
+findAlbumBySlug : Array Album -> String -> Maybe Album
+findAlbumBySlug albums_ slug =
+    Array.keepIf (\n -> n.slug == slug) albums_ |> (Array.get 0)
+
+
+setSelectedAlbumFromRoute : Maybe Route -> Model -> {model: Model, command: Cmd Msg}
+setSelectedAlbumFromRoute route model =
+    let selectedAlbum = when route is
+            Just (AlbumRoute slug) ->
+                findAlbumBySlug model.albums slug
+            _ ->
+                Nothing
+    in
+        {model={ model | selectedAlbum = selectedAlbum }, command=Cmd.none}
+
+
+-- Album data taken from respective Wikipedia pages
+albums : Array Album
+albums =
+    [ { coverThumbnailUrl = "https://upload.wikimedia.org/wikipedia/en/6/6b/Dsothunder-250.jpg"
+      , description = "Delicate Sound of Thunder is a double live album by the English progressive rock band Pink Floyd which was recorded over five nights at the Nassau Coliseum on Long Island, New York in August 1988 and mixed at Abbey Road Studios in September 1988. It was released on 22 November 1988, through EMI Records in the United Kingdom and Columbia Records in the United States. - Wikipedia"
+      , slug = "delicate-sound-of-thunder"
+      , title = "Delicate Sound of Thunder"
+      , wikipediaUrl = "https://en.wikipedia.org/wiki/Delicate_Sound_of_Thunder"
+      }
+    , { coverThumbnailUrl = "https://upload.wikimedia.org/wikipedia/en/3/38/Is_there_anybody_out_there%3F_40273_big.jpg"
+      , description = "Is There Anybody Out There? The Wall Live 1980-81 is a live album released by Pink Floyd in 2000. It is a live rendition of The Wall, produced and engineered by James Guthrie, with tracks selected from the August 1980 and June 1981 performances at Earls Court in London. The album was first released in The Netherlands by EMI Records on 23 March 2000, who released a limited edition in the United Kingdom on 27 March. The general release followed on 18 April 2000 with US and Canadian distribution by Columbia Records. - Wikipedia"
+      , slug = "is-there-anybody-out-there"
+      , title = "Is There Anybody Out There?"
+      , wikipediaUrl = "https://en.wikipedia.org/wiki/Is_There_Anybody_Out_There%3F_The_Wall_Live_1980%E2%80%9381"
+      }
+    , { coverThumbnailUrl = "https://upload.wikimedia.org/wikipedia/en/3/36/Pink_Floyd_-_Pulse.png"
+      , description = "Pulse (stylised as p·u·l·s·e) is a live double album by the English progressive rock band Pink Floyd. It was originally released on 29 May 1995, on the label EMI in the United Kingdom and on 6 June 1995 by Columbia in the United States.[3]\n\nThe album was recorded during the band's Division Bell Tour in 1994, specifically the UK and European leg, which ran from July to October 1994. - Wikipedia"
+      , slug = "pulse"
+      , title = "Pulse"
+      , wikipediaUrl = "https://en.wikipedia.org/wiki/Pulse_(Pink_Floyd_album)"
+      }
+    ]
+
+
+init : flags -> Url -> Nav.Key -> {command: Cmd Msg, model: Model}
+init _ url key =
+    setSelectedAlbumFromRoute (parseRouteFromUrl url)
+        {
+          albums = albums
+        , key = key
+        , selectedAlbum = Nothing
+        }
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.none
+
+
+view : Model -> Document Msg
+view model =
+    let contents = when model.selectedAlbum is
+            Just album ->
+                div [ class "album" ]
+                    [ h1 [ class "title" ] [ text album.title ]
+                    , img
+                        [ class "cover"
+                        , src album.coverThumbnailUrl
+                        ]
+                        []
+                    , div [] [ p [ class "description" ] [ text album.description ] ]
+                    ]
+
+            _ ->
+                div [ class "albums-wrapper" ]
+                    ([ h1 [] [ text "Live Pink Floyd Albums:" ]
+                     , ul [ class "albums" ]
+                        (Array.map
+                            (\v ->
+                                li [ class "album" ]
+                                    [ a
+                                        [ href (AlbumRoute v.slug) ]
+                                        [ text v.title ]
+                                    ]
+                            )
+                            model.albums
+                        )
+                     ]
+                    )
+        body = [div [id "wrapper"] [contents]]
+    in
+      {
+          body = body
+      ,   title = "Pink Floyd - Live Albums"
+      }
+
+
+update : Msg -> Model -> {model: Model, command: Cmd Msg}
+update msg model =
+    when msg is
+        UrlChanged url ->
+            setSelectedAlbumFromRoute (parseRouteFromUrl url) model
+        UrlRequested url ->
+            when url is
+                Internal internal_url ->
+                    when internal_url.fragment is
+                        Just fragment ->
+                            -- TODO: helper for url update
+                            -- it's probably not greate that the hash change
+                            -- is what's driving the model change but :shrug:?
+                            {model=model, command=Nav.pushUrl model.key ("#" ++ fragment)}
+                        Nothing ->
+                            {model=model, command=Cmd.none}
+                _ ->
+                    -- TODO: test this scenario
+                    {model=model, command=Cmd.none}
+
+
+main : Program {} Model Msg
+main =
+    Browser.application
+        {
+          init = init
+        , onUrlChange = UrlChanged
+        , onUrlRequest = UrlRequested
+        , subscriptions = subscriptions
+        , update = update
+        , view = view
+        }
