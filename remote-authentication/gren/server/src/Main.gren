@@ -1,0 +1,195 @@
+module Main exposing (main)
+
+import Bytes exposing (Bytes)
+import HttpServer as Http exposing (ServerError(..))
+import HttpServer as Request
+import HttpServer.Response as Response exposing (Response)
+import Init
+import Json.Decode as Decode exposing (..)
+import Node
+import Node exposing (Environment, Program)
+import Stream
+import Task
+import Url
+
+
+main : Program Model Msg
+main =
+    Node.defineProgram
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        }
+
+type alias User =
+    {
+      email: String,
+      first_name: String,
+      last_name: String,
+      password: String
+    }
+
+type alias UserDb = Array User
+
+type alias Model =
+    { stdout : Stream.Writable Bytes
+    , stderr : Stream.Writable Bytes
+    , server : Maybe Http.Server
+    , appState : { userDb : UserDb }
+    }
+
+
+type Msg
+    = CreateServerResult (Result Http.ServerError Http.Server)
+    | GotRequest { request : Http.Request, response : Response }
+
+
+init : Environment -> Init.Task { model : Model, command : Cmd Msg }
+init env =
+    Init.await Http.initialize <| \serverPermission ->
+        Node.startProgram
+            { model =
+                { stdout = env.stdout
+                , stderr = env.stderr
+                , server = Nothing
+                , appState = {userDb = []}
+                }
+            , command =
+                Task.attempt CreateServerResult <|
+                    Http.createServer serverPermission
+                        { host = "0.0.0.0"
+                        , port_ = 3000
+                        }
+            }
+
+
+type alias SignInRequestUser =
+    { email : String
+    , password : String
+    }
+
+makeSignInRequestUser : String -> String -> SignInRequestUser
+makeSignInRequestUser email password =
+    { email = email
+    , password = password
+    }
+
+signInBodyDecoder =
+    Request.bodyFromJson (
+        Decode.map2 makeSignInRequestUser
+        (Decode.field "email" Decode.string)
+        (Decode.field "password" Decode.string)
+    )
+
+type alias SignUpRequestUser =
+    { email : String
+    , password : String
+    , firstName : String
+    , lastName : String
+    }
+
+makeSignUpRequestUser : String -> String -> String -> String -> SignUpRequestUser
+makeSignUpRequestUser email password firstName lastName =
+    { email = email
+    , password = password
+    , firstName = firstName
+    , lastName = lastName
+    }
+
+signUpBodyDecoder =
+    Request.bodyFromJson (
+        Decode.map4 makeSignUpRequestUser
+        (Decode.field "email" Decode.string)
+        (Decode.field "password" Decode.string)
+        (Decode.field "firstName" Decode.string)
+        (Decode.field "lastName" Decode.string)
+    )
+
+
+errorResponse res code err =
+  res
+    |> Response.setStatus code
+    |> Response.setHeader "Content-type" "text/html"
+    |> Response.setBody ("<html>" ++ err ++ "</html>")
+    |> Response.send
+
+successResponse res code message =
+  res
+    |> Response.setStatus code
+    |> Response.setHeader "Content-type" "text/html"
+    |> Response.setBody ("<html>" ++ message ++ "</html>")
+    |> Response.send
+
+
+
+signUpHandler : Model -> Request.Request -> Response.Response -> { model : Model, command : Cmd Msg }
+signUpHandler model req res =
+    let decodedData = (signUpBodyDecoder req)
+    in
+        when decodedData is
+          Ok signUpRequestUser ->
+            {
+                model=model
+             ,  command = successResponse res 201 <| "created user: " ++ signUpRequestUser.email
+            }
+          Err error ->
+            {
+                model=model
+                -- TODO: handle all Error enum values
+                    -- Field
+                    -- Index
+                    -- OneOf
+                    -- Failure
+             ,  command = errorResponse res 400 <| Decode.errorToString error
+            }
+
+
+signInHandler : Model -> Request.Request -> Response.Response -> { model : Model, command : Cmd Msg }
+signInHandler model req res =
+    Debug.todo "make sign in work using cryptography library"
+
+requestHandler : Model -> Request.Request -> Response.Response -> { model : Model, command : Cmd Msg }
+requestHandler model req res =
+    when req.method is
+        Request.POST ->
+            when req.url.path is
+                "/users/auth/sign-up" ->
+                    signUpHandler model req res
+                "/users/auth/sign-in" ->
+                    signInHandler model req res
+                _ ->
+                    {model=model, command=errorResponse res 404 "fixme"}
+        _ ->
+            {model=model, command=errorResponse res 404 "fixme"}
+
+
+update : Msg -> Model -> { model : Model, command : Cmd Msg }
+update msg model =
+    when msg is
+        CreateServerResult result ->
+            when result is
+                Ok server ->
+                    { model = { model | server = Just server }
+                    , command =
+                        Stream.writeLineAsBytes "Server started" model.stdout
+                           |> Task.onError (\_ -> Task.succeed model.stderr)
+                           |> Task.execute
+                    }
+                Err (ServerError { code, message }) ->
+                    { model = model
+                    , command =
+                        Stream.writeLineAsBytes ("Server failed to start: " ++ code ++ "\n" ++ message) model.stderr
+                          |> Task.onError (\_ -> Task.succeed model.stderr)
+                          |> Task.execute
+                    }
+
+        GotRequest { request = req, response = res } ->
+            requestHandler model req res
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    when model.server is
+        Just server ->
+            Http.onRequest server (\req res -> GotRequest { request = req, response = res })
+        Nothing ->
+            Sub.none
