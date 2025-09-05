@@ -1,6 +1,10 @@
 module Main exposing (main)
 
+import Math
 import Bytes exposing (Bytes)
+import Bytes.Encode as Encode
+import Bytes.Decode as BytesDecode
+import Crypto exposing (DigestAlgorithm, getSecureContext, digest)
 import HttpServer as Http exposing (ServerError(..))
 import HttpServer as Request
 import HttpServer.Response as Response exposing (Response)
@@ -8,8 +12,10 @@ import Init
 import Json.Decode as Decode exposing (..)
 import Node
 import Node exposing (Environment, Program)
+import Platform.Cmd as Ccmd exposing (batch, map)
 import Stream
-import Task
+import Task exposing (Task)
+import Time
 import Url
 
 
@@ -24,24 +30,33 @@ main =
 type alias User =
     {
       email: String,
-      first_name: String,
-      last_name: String,
-      password: String
+      firstName: String,
+      lastName: String,
+      hashedPassword: String
     }
 
 type alias UserDb = Array User
+-- this should instead be a dict
+-- {email=>User}
 
 type alias Model =
-    { stdout : Stream.Writable Bytes
-    , stderr : Stream.Writable Bytes
+    { appState : { userDb : UserDb }
     , server : Maybe Http.Server
-    , appState : { userDb : UserDb }
+    , stderr : Stream.Writable Bytes
+    , stdout : Stream.Writable Bytes
     }
 
 
 type Msg
     = CreateServerResult (Result Http.ServerError Http.Server)
     | GotRequest { request : Http.Request, response : Response }
+    | GotSecureContext {
+        context: Crypto.SecureContext
+      , res: Response.Response
+      , user: SignInRequestUser
+    }
+    | HashingFailed {error: String, res: Response.Response}
+    | PasswordChecked {match: Bool, res: Response.Response}
 
 
 init : Environment -> Init.Task { model : Model, command : Cmd Msg }
@@ -52,7 +67,14 @@ init env =
                 { stdout = env.stdout
                 , stderr = env.stderr
                 , server = Nothing
-                , appState = {userDb = []}
+                , appState = {userDb = [
+                        {
+                            email="nobody@test.com"
+                          , firstName="nobody"
+                          , hashedPassword="936a185caaa266bb9cbe981e9e05cb78cd732b0b3280eb944412bb6f8f8f07af" -- helloworld
+                          , lastName="nobody"
+                        }
+                    ]}
                 }
             , command =
                 Task.attempt CreateServerResult <|
@@ -127,6 +149,7 @@ signUpHandler model req res =
     let decodedData = (signUpBodyDecoder req)
     in
         when decodedData is
+          -- TODO: hash user password *GROAN* and add user to appState
           Ok signUpRequestUser ->
             {
                 model=model
@@ -143,10 +166,45 @@ signUpHandler model req res =
              ,  command = errorResponse res 400 <| Decode.errorToString error
             }
 
+hashPassword : Crypto.SecureContext -> String -> Task String Bytes
+hashPassword context password =
+    let
+        passwordBytes = Bytes.fromString password
+    in
+        digest context Crypto.Sha256 passwordBytes |>
+        Task.mapError (\_ -> "Hashing failed")
 
 signInHandler : Model -> Request.Request -> Response.Response -> { model : Model, command : Cmd Msg }
 signInHandler model req res =
-    Debug.todo "make sign in work using cryptography library"
+    let decodedData = (signInBodyDecoder req)
+    in
+        when decodedData is
+          Err error ->
+            {
+                model=model
+                -- TODO: handle all Error enum values
+                    -- Field
+                    -- Index
+                    -- OneOf
+                    -- Failure
+             ,  command = errorResponse res 400 <| Decode.errorToString error
+            }
+          Ok signInRequestUser ->
+            { model = model
+            , command =
+                Task.attempt
+                    (\result ->
+                        when result is
+                            Ok context -> GotSecureContext {context=context, user=signInRequestUser, res=res}
+                            Err error ->
+                                -- Debug.log ("Unable to get secure context" ++ (Debug.toString error))
+                                -- i don't think this is correct? this wouldn't be HashingFailed
+                                -- but GetSecureContextFailed
+                                HashingFailed {error="Failed to get secure context", res=res}
+                    )
+                    getSecureContext
+            }
+
 
 requestHandler : Model -> Request.Request -> Response.Response -> { model : Model, command : Cmd Msg }
 requestHandler model req res =
@@ -162,6 +220,43 @@ requestHandler model req res =
         _ ->
             {model=model, command=errorResponse res 404 "fixme"}
 
+bytesToHex : Bytes -> String
+bytesToHex bytes =
+    let
+        byteToHex : Int -> String
+        byteToHex byte =
+            let
+                toHexDigit n =
+                    if n < 10 then
+                        String.fromInt n
+                    else
+                        when n is
+                            10 -> "a"
+                            11 -> "b"
+                            12 -> "c"
+                            13 -> "d"
+                            14 -> "e"
+                            15 -> "f"
+                            _ -> "0"
+                high = byte // 16
+                low = Math.modBy 16 byte
+            in
+                toHexDigit high ++ toHexDigit low
+
+        buildHexString : Int -> BytesDecode.Decoder String
+        buildHexString remaining =
+            if remaining <= 0 then
+                BytesDecode.succeed ""
+            else
+                BytesDecode.map2 (\byte rest -> byteToHex byte ++ rest)
+                    BytesDecode.unsignedInt8
+                    (buildHexString (remaining - 1))
+
+        decoder = buildHexString (Bytes.length bytes)
+    in
+        when BytesDecode.decode decoder bytes is
+            Just hexString -> hexString
+            Nothing -> ""
 
 update : Msg -> Model -> { model : Model, command : Cmd Msg }
 update msg model =
@@ -185,7 +280,51 @@ update msg model =
 
         GotRequest { request = req, response = res } ->
             requestHandler model req res
+        PasswordChecked passwordCheckValues -> -- dumb variable name but better than "stuff"
+            when passwordCheckValues.match is
+              True ->
+                Debug.log "login succeeded"
+                {
+                  model=model
+                , command=successResponse passwordCheckValues.res 200 <| "login succeeded!"
+                }
+              False ->
+                Debug.log "login failed"
+                {
+                  model=model
+                , command=errorResponse passwordCheckValues.res 400 <| "login failed!"
+                }
 
+        GotSecureContext {context=context, user=signInRequestUser, res=res} ->
+            let
+                user_ = Array.first model.appState.userDb
+                storedHash =
+                    when user_ is
+                        Just user__ -> user__.hashedPassword
+                        _ -> "..." -- this is not okay; this should result in an error
+            in
+            { model = model
+            , command =
+                Task.attempt
+                    (\result ->
+                        when result is
+                            Ok hashedBytes ->
+                                let
+                                    hashedHex = bytesToHex hashedBytes
+                                in
+                                    PasswordChecked {
+                                        match=(hashedHex == storedHash)
+                                      , res=res
+                                    }
+                            Err _ ->
+                                HashingFailed {error="Password hashing failed", res=res}
+                    )
+                    (hashPassword context signInRequestUser.password)
+            }
+        -- This results in an inscrutable error:
+        -- > thread blocked indefinitely in an MVar operation
+        -- HashingFailed _ -> {model=model, command=Cmd.none}
+        _ -> {model=model, command=Cmd.none}
 subscriptions : Model -> Sub Msg
 subscriptions model =
     when model.server is
