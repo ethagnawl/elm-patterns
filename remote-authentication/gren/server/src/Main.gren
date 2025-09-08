@@ -23,8 +23,8 @@ main : Program Model Msg
 main =
     Node.defineProgram
         { init = init
-        , update = update
         , subscriptions = subscriptions
+        , update = update
         }
 
 encodeJsonBody : JsonEncode.Value -> String
@@ -38,7 +38,6 @@ encodeJsonBody data =
             }]
         }
     ]
-
 
 
 encodeUser : User -> JsonEncode.Value
@@ -59,8 +58,6 @@ type alias User =
     }
 
 type alias UserDb = Dict String User
--- this should instead be a dict
--- {email=>User}
 
 type alias Model =
     { appState : { userDb : UserDb }
@@ -160,22 +157,33 @@ signUpBodyDecoder =
 errorResponse res code err =
   res
     |> Response.setStatus code
-    |> Response.setHeader "Content-type" "text/html"
-    |> Response.setBody ("<html>" ++ err ++ "</html>")
+    |> Response.setHeader "Content-type" "text/plain"
+    |> Response.setBody err
     |> Response.send
 
--- TODO: add opt headers dict
--- TODO: add opt content-type
-successResponse res code contentType message =
-  res
-    |> Response.setStatus code
-    |> Response.setHeader "Access-Control-Allow-Origin" "*"
-    |> Response.setHeader "Access-Control-Allow-Methods" "POST"
-    |> Response.setHeader "Access-Control-Allow-Headers" "*"
-    |> Response.setHeader "Content-type" contentType
-    |> Response.setBody (message)
-    |> Response.send
-
+successResponse res code contentType headers message =
+    let
+        baseResponse = res
+            |> Response.setStatus code
+            |> Response.setHeader "Content-Type" contentType
+            |> Response.setHeader "Access-Control-Allow-Origin" "*"
+            |> Response.setHeader "Access-Control-Allow-Methods" "POST"
+            |> Response.setHeader "Access-Control-Allow-Headers" "*"
+            |> Response.setHeader "Content-type" contentType
+            |> Response.setBody message
+        finalResponse = when headers is
+            Just newHeaders ->
+                let
+                    result = Dict.foldl
+                        (\key value currentResponse -> Response.setHeader key value currentResponse)
+                        baseResponse
+                        newHeaders
+                in
+                    result
+            Nothing ->
+                baseResponse
+    in
+        Response.send finalResponse
 
 
 signUpHandler : Model -> Request.Request -> Response.Response -> { model : Model, command : Cmd Msg }
@@ -192,7 +200,7 @@ signUpHandler model req res =
                 Debug.log (Debug.toString updatedAppState)
                 {
                     model={model | appState=updatedAppState}
-                 ,  command = successResponse res 201 "text/html" <| "created user: " ++ email
+                 ,  command = successResponse res 201 "text/plain" Nothing <| "created user: " ++ email
                 }
           Err error ->
             {
@@ -245,6 +253,15 @@ signInHandler model req res =
             }
 
 
+corsHandler model req res =
+    -- all XHR requests need the CORS headers, so this winds up being pretty useless ...
+    let corsHeaders = Nothing
+    in
+        {
+            command=successResponse res 200 "text/plain" corsHeaders ""
+          , model=model
+        }
+
 requestHandler : Model -> Request.Request -> Response.Response -> { model : Model, command : Cmd Msg }
 requestHandler model req res =
     when req.method is
@@ -264,18 +281,15 @@ requestHandler model req res =
             in
                 -- TODO: submit feature request / patch for this?
                 if method == "OPTIONS" then
-                    {
-                        command=successResponse res 200 "text/html" ""
-                      , model=model
-                    }
+                    corsHandler model req res
                 else
                     {
-                        command=successResponse res 400 "text/html" unknownMethodError
+                        command=successResponse res 400 "text/plain" Nothing unknownMethodError
                       , model=model
                     }
         _ ->
             {
-                command=successResponse res 400 "text/html" "..."
+                command=successResponse res 400 "text/plain" Nothing "..."
               , model=model
             }
 
@@ -345,7 +359,7 @@ update msg model =
                   in
                     Debug.log "login succeeded"
                     {
-                      command=successResponse passwordCheckValues.res 200 "application/json" body
+                      command=successResponse passwordCheckValues.res 200 "application/json" Nothing body
                     , model=model
                     }
               False ->
@@ -370,9 +384,10 @@ update msg model =
                                     Ok hashedBytes ->
                                         let
                                             hashedHex = bytesToHex hashedBytes
+                                            match = (hashedHex == user__.hashedPassword)
                                         in
                                             PasswordChecked {
-                                                match=(hashedHex == user__.hashedPassword)
+                                                match=match
                                               , res=res
                                               , user=user__
                                             }
