@@ -93,11 +93,11 @@ apiRequest model apiUrl encoder =
 
 registerUrl : String -> String
 registerUrl apiRoot =
-    apiRoot ++ "users"
+    apiRoot ++ "users/auth/sign-up"
 
 loginUrl : String -> String
 loginUrl apiRoot =
-    apiRoot ++ "users/auth/sign_in"
+    apiRoot ++ "users/auth/sign-in"
 
 update : Action.Action -> Model.Model -> {model: Model.Model, command: Cmd Action.Action}
 update msg model =
