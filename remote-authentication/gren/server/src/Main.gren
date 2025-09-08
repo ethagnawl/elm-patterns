@@ -9,14 +9,14 @@ import HttpServer as Http exposing (ServerError(..))
 import HttpServer as Request
 import HttpServer.Response as Response exposing (Response)
 import Init
-import Json.Decode as Decode exposing (..)
+import Json.Decode as JsonDecode
+import Json.Encode as JsonEncode
 import Math
 import Node
 import Node exposing (Environment, Program)
 import Stream
 import Task exposing (Task)
 import Url
-import Json.Encode as JsonEncode
 
 
 main : Program Model Msg
@@ -127,9 +127,9 @@ makeSignInRequestUser email password =
 
 signInBodyDecoder =
     Request.bodyFromJson (
-        Decode.map2 makeSignInRequestUser
-        (Decode.field "email" Decode.string)
-        (Decode.field "password" Decode.string)
+        JsonDecode.map2 makeSignInRequestUser
+        (JsonDecode.field "email" JsonDecode.string)
+        (JsonDecode.field "password" JsonDecode.string)
     )
 
 type alias SignUpRequestUser =
@@ -149,11 +149,11 @@ makeSignUpRequestUser email password firstName lastName =
 
 signUpBodyDecoder =
     Request.bodyFromJson (
-        Decode.map4 makeSignUpRequestUser
-        (Decode.field "email" Decode.string)
-        (Decode.field "firstName" Decode.string)
-        (Decode.field "hashedPassword" Decode.string)
-        (Decode.field "lastName" Decode.string)
+        JsonDecode.map4 makeSignUpRequestUser
+        (JsonDecode.field "email" JsonDecode.string)
+        (JsonDecode.field "firstName" JsonDecode.string)
+        (JsonDecode.field "hashedPassword" JsonDecode.string)
+        (JsonDecode.field "lastName" JsonDecode.string)
     )
 
 
@@ -202,7 +202,7 @@ signUpHandler model req res =
                     -- Index
                     -- OneOf
                     -- Failure
-             ,  command = errorResponse res 400 <| Decode.errorToString error
+             ,  command = errorResponse res 400 <| JsonDecode.errorToString error
             }
 
 hashPassword : Crypto.SecureContext -> String -> Task String Bytes
@@ -226,7 +226,7 @@ signInHandler model req res =
                     -- Index
                     -- OneOf
                     -- Failure
-             ,  command = errorResponse res 400 <| Decode.errorToString error
+             ,  command = errorResponse res 400 <| JsonDecode.errorToString error
             }
           Ok signInRequestUser ->
             { model = model
