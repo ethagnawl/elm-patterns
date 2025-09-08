@@ -1,9 +1,10 @@
-module Main exposing (main)
+odule Main exposing (main)
 
 import Bytes exposing (Bytes)
 import Bytes.Decode as BytesDecode
 import Bytes.Encode as Encode
 import Crypto exposing (getSecureContext, digest)
+import Dict exposing (Dict)
 import HttpServer as Http exposing (ServerError(..))
 import HttpServer as Request
 import HttpServer.Response as Response exposing (Response)
@@ -15,6 +16,7 @@ import Node exposing (Environment, Program)
 import Stream
 import Task exposing (Task)
 import Url
+import Json.Encode as JsonEncode
 
 
 main : Program Model Msg
@@ -25,6 +27,29 @@ main =
         , subscriptions = subscriptions
         }
 
+encodeJsonBody : JsonEncode.Value -> String
+encodeJsonBody data =
+    JsonEncode.encode 0 <| JsonEncode.object [
+        {
+            key = "data",
+            value = JsonEncode.object [{
+                key = "attributes",
+                value = data
+            }]
+        }
+    ]
+
+
+
+encodeUser : User -> JsonEncode.Value
+encodeUser user =
+    JsonEncode.object [
+        { key = "first_name", value = JsonEncode.string user.firstName }
+      , { key = "last_name", value = JsonEncode.string user.lastName }
+      , { key = "email", value = JsonEncode.string user.email }
+    ]
+
+
 type alias User =
     {
       email: String,
@@ -33,7 +58,7 @@ type alias User =
       hashedPassword: String
     }
 
-type alias UserDb = Array User
+type alias UserDb = Dict String User
 -- this should instead be a dict
 -- {email=>User}
 
@@ -54,33 +79,39 @@ type Msg
       , user: SignInRequestUser
     }
     | HashingFailed {error: String, res: Response.Response}
-    | PasswordChecked {match: Bool, res: Response.Response}
+    | PasswordChecked {match: Bool, user: User, res: Response.Response}
 
 
 init : Environment -> Init.Task { model : Model, command : Cmd Msg }
 init env =
-    Init.await Http.initialize <| \serverPermission ->
-        Node.startProgram
-            { model =
-                { stdout = env.stdout
-                , stderr = env.stderr
-                , server = Nothing
-                , appState = {userDb = [
+    let dummyEmail = "nobody@test.com"
+        userDb = Dict.empty |>
+                    Dict.set
+                        dummyEmail
                         {
-                            email="nobody@test.com"
-                          , firstName="nobody"
-                          , hashedPassword="936a185caaa266bb9cbe981e9e05cb78cd732b0b3280eb944412bb6f8f8f07af" -- helloworld
-                          , lastName="nobody"
+                            email=dummyEmail,
+                            firstName="Test",
+                            hashedPassword="936a185caaa266bb9cbe981e9e05cb78cd732b0b3280eb944412bb6f8f8f07af",
+                            lastName="User"
                         }
-                    ]}
+    in
+        Init.await Http.initialize <| \serverPermission ->
+            Node.startProgram
+                { model =
+                    {
+                      appState = {userDb = userDb}
+                    , server = Nothing
+                    , stderr = env.stderr
+                    , stdout = env.stdout
+                    }
+
+                , command =
+                    Task.attempt CreateServerResult <|
+                        Http.createServer serverPermission
+                            { host = "localhost"
+                            , port_ = 3000
+                            }
                 }
-            , command =
-                Task.attempt CreateServerResult <|
-                    Http.createServer serverPermission
-                        { host = "0.0.0.0"
-                        , port_ = 3000
-                        }
-            }
 
 
 type alias SignInRequestUser =
@@ -103,7 +134,7 @@ signInBodyDecoder =
 
 type alias SignUpRequestUser =
     { email : String
-    , password : String
+    , hashedPassword : String
     , firstName : String
     , lastName : String
     }
@@ -111,8 +142,8 @@ type alias SignUpRequestUser =
 makeSignUpRequestUser : String -> String -> String -> String -> SignUpRequestUser
 makeSignUpRequestUser email password firstName lastName =
     { email = email
-    , password = password
     , firstName = firstName
+    , hashedPassword = password
     , lastName = lastName
     }
 
@@ -120,8 +151,8 @@ signUpBodyDecoder =
     Request.bodyFromJson (
         Decode.map4 makeSignUpRequestUser
         (Decode.field "email" Decode.string)
-        (Decode.field "password" Decode.string)
         (Decode.field "firstName" Decode.string)
+        (Decode.field "hashedPassword" Decode.string)
         (Decode.field "lastName" Decode.string)
     )
 
@@ -133,11 +164,16 @@ errorResponse res code err =
     |> Response.setBody ("<html>" ++ err ++ "</html>")
     |> Response.send
 
-successResponse res code message =
+-- TODO: add opt headers dict
+-- TODO: add opt content-type
+successResponse res code contentType message =
   res
     |> Response.setStatus code
-    |> Response.setHeader "Content-type" "text/html"
-    |> Response.setBody ("<html>" ++ message ++ "</html>")
+    |> Response.setHeader "Access-Control-Allow-Origin" "*"
+    |> Response.setHeader "Access-Control-Allow-Methods" "POST"
+    |> Response.setHeader "Access-Control-Allow-Headers" "*"
+    |> Response.setHeader "Content-type" contentType
+    |> Response.setBody (message)
     |> Response.send
 
 
@@ -147,12 +183,17 @@ signUpHandler model req res =
     let decodedData = (signUpBodyDecoder req)
     in
         when decodedData is
-          -- TODO: hash user password *GROAN* and add user to appState
+          -- TODO: hash user password *GROAN*
           Ok signUpRequestUser ->
-            {
-                model=model
-             ,  command = successResponse res 201 <| "created user: " ++ signUpRequestUser.email
-            }
+              let email = signUpRequestUser.email
+                  updatedUserDb = Dict.set email signUpRequestUser model.appState.userDb
+                  updatedAppState = {model.appState | userDb = updatedUserDb}
+              in
+                Debug.log (Debug.toString updatedAppState)
+                {
+                    model={model | appState=updatedAppState}
+                 ,  command = successResponse res 201 "text/html" <| "created user: " ++ email
+                }
           Err error ->
             {
                 model=model
@@ -214,9 +255,29 @@ requestHandler model req res =
                 "/users/auth/sign-in" ->
                     signInHandler model req res
                 _ ->
-                    {model=model, command=errorResponse res 404 "fixme"}
+                    {
+                        command=errorResponse res 404 ""
+                      , model=model
+                    }
+        Request.UNKNOWN method ->
+            let unknownMethodError = "Unknown HTTP method: " ++ method
+            in
+                -- TODO: submit feature request / patch for this?
+                if method == "OPTIONS" then
+                    {
+                        command=successResponse res 200 "text/html" ""
+                      , model=model
+                    }
+                else
+                    {
+                        command=successResponse res 400 "text/html" unknownMethodError
+                      , model=model
+                    }
         _ ->
-            {model=model, command=errorResponse res 404 "fixme"}
+            {
+                command=successResponse res 400 "text/html" "..."
+              , model=model
+            }
 
 bytesToHex : Bytes -> String
 bytesToHex bytes =
@@ -275,47 +336,50 @@ update msg model =
                           |> Task.onError (\_ -> Task.succeed model.stderr)
                           |> Task.execute
                     }
-
         GotRequest { request = req, response = res } ->
             requestHandler model req res
         PasswordChecked passwordCheckValues -> -- dumb variable name but better than "stuff"
             when passwordCheckValues.match is
               True ->
-                Debug.log "login succeeded"
-                {
-                  model=model
-                , command=successResponse passwordCheckValues.res 200 <| "login succeeded!"
-                }
+                  let body = encodeJsonBody <| encodeUser passwordCheckValues.user
+                  in
+                    Debug.log "login succeeded"
+                    {
+                      command=successResponse passwordCheckValues.res 200 "application/json" body
+                    , model=model
+                    }
               False ->
                 Debug.log "login failed"
                 {
-                  model=model
-                , command=errorResponse passwordCheckValues.res 400 <| "login failed!"
+                   command=errorResponse passwordCheckValues.res 400 <| "login failed!"
+                 , model=model
                 }
-
         GotSecureContext {context=context, user=signInRequestUser, res=res} ->
             let
-                user_ = Array.first model.appState.userDb
-                storedHash =
-                    when user_ is
-                        Just user__ -> user__.hashedPassword
-                        _ -> "..." -- this is not okay; this should result in an error
+                user_ = Dict.get signInRequestUser.email model.appState.userDb
             in
             { model = model
             , command =
                 Task.attempt
                     (\result ->
-                        when result is
-                            Ok hashedBytes ->
-                                let
-                                    hashedHex = bytesToHex hashedBytes
-                                in
-                                    PasswordChecked {
-                                        match=(hashedHex == storedHash)
-                                      , res=res
-                                    }
-                            Err _ ->
-                                HashingFailed {error="Password hashing failed", res=res}
+                        -- this is dumb and should be its own Msg
+                        -- this nesting is also dumb
+                        when user_ is
+                            Just user__ ->
+                                when result is
+                                    Ok hashedBytes ->
+                                        let
+                                            hashedHex = bytesToHex hashedBytes
+                                        in
+                                            PasswordChecked {
+                                                match=(hashedHex == user__.hashedPassword)
+                                              , res=res
+                                              , user=user__
+                                            }
+                                    Err _ ->
+                                        HashingFailed {error="Password hashing failed", res=res}
+                            Nothing ->
+                                HashingFailed {error="No user to compare against", res=res}
                     )
                     (hashPassword context signInRequestUser.password)
             }
