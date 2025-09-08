@@ -1,4 +1,4 @@
-odule Main exposing (main)
+module Main exposing (main)
 
 import Bytes exposing (Bytes)
 import Bytes.Decode as BytesDecode
