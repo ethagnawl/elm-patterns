@@ -1,8 +1,7 @@
 module Main exposing (main)
 
 import Bytes exposing (Bytes)
-import Bytes.Decode as BytesDecode
-import Bytes.Encode as Encode
+import BytesUtils exposing (bytesToHex)
 import Crypto exposing (getSecureContext, digest)
 import Dict exposing (Dict)
 import HttpServer as Http exposing (ServerError(..))
