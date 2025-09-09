@@ -42,18 +42,18 @@ encodeJsonBody data =
 encodeUser : User -> JsonEncode.Value
 encodeUser user =
     JsonEncode.object [
-        { key = "first_name", value = JsonEncode.string user.firstName }
-      , { key = "last_name", value = JsonEncode.string user.lastName }
+        { key = "firstName", value = JsonEncode.string user.firstName }
       , { key = "email", value = JsonEncode.string user.email }
+      , { key = "lastName", value = JsonEncode.string user.lastName }
     ]
 
 
 type alias User =
     {
-      email: String,
-      firstName: String,
-      lastName: String,
-      hashedPassword: String
+      email: String
+    , firstName: String
+    , hashedPassword: String
+    , lastName: String
     }
 
 type alias UserDb = Dict String User
@@ -65,17 +65,35 @@ type alias Model =
     , stdout : Stream.Writable Bytes
     }
 
+type alias SignInRequestUser =
+    { email : String
+    , password : String
+    }
+
+type alias SignUpRequestUser =
+    {
+      email : String
+    , password : String
+    , firstName : String
+    , lastName : String
+    }
+
+type RequestUser
+    = SignUpUser SignUpRequestUser
+    | SignInUser SignInRequestUser
 
 type Msg
     = CreateServerResult (Result Http.ServerError Http.Server)
+    | ErrorDetected {error: String, res: Response.Response}
     | GotRequest { request : Http.Request, response : Response }
     | GotSecureContext {
         context: Crypto.SecureContext
       , res: Response.Response
-      , user: SignInRequestUser
+      , user: RequestUser
     }
     | HashingFailed {error: String, res: Response.Response}
     | PasswordChecked {match: Bool, user: User, res: Response.Response}
+    | UserCreated {user: User, res: Response.Response}
 
 
 init : Environment -> Init.Task { model : Model, command : Cmd Msg }
@@ -110,11 +128,6 @@ init env =
                 }
 
 
-type alias SignInRequestUser =
-    { email : String
-    , password : String
-    }
-
 makeSignInRequestUser : String -> String -> SignInRequestUser
 makeSignInRequestUser email password =
     { email = email
@@ -128,18 +141,11 @@ signInBodyDecoder =
         (JsonDecode.field "password" JsonDecode.string)
     )
 
-type alias SignUpRequestUser =
-    { email : String
-    , hashedPassword : String
-    , firstName : String
-    , lastName : String
-    }
-
 makeSignUpRequestUser : String -> String -> String -> String -> SignUpRequestUser
 makeSignUpRequestUser email password firstName lastName =
     { email = email
     , firstName = firstName
-    , hashedPassword = password
+    , password = password
     , lastName = lastName
     }
 
@@ -148,17 +154,21 @@ signUpBodyDecoder =
         JsonDecode.map4 makeSignUpRequestUser
         (JsonDecode.field "email" JsonDecode.string)
         (JsonDecode.field "firstName" JsonDecode.string)
-        (JsonDecode.field "hashedPassword" JsonDecode.string)
         (JsonDecode.field "lastName" JsonDecode.string)
+        (JsonDecode.field "password" JsonDecode.string)
     )
 
 
-errorResponse res code err =
+errorResponse res code contentType message =
   res
     |> Response.setStatus code
-    |> Response.setHeader "Content-type" "text/plain"
-    |> Response.setBody err
+    |> Response.setHeader "Content-type" contentType
+    |> Response.setHeader "Access-Control-Allow-Origin" "*"
+    |> Response.setHeader "Access-Control-Allow-Methods" "POST"
+    |> Response.setHeader "Access-Control-Allow-Headers" "*"
+    |> Response.setBody message
     |> Response.send
+
 
 successResponse res code contentType headers message =
     let
@@ -168,7 +178,6 @@ successResponse res code contentType headers message =
             |> Response.setHeader "Access-Control-Allow-Origin" "*"
             |> Response.setHeader "Access-Control-Allow-Methods" "POST"
             |> Response.setHeader "Access-Control-Allow-Headers" "*"
-            |> Response.setHeader "Content-type" contentType
             |> Response.setBody message
         finalResponse = when headers is
             Just newHeaders ->
@@ -190,26 +199,22 @@ signUpHandler model req res =
     let decodedData = (signUpBodyDecoder req)
     in
         when decodedData is
-          -- TODO: hash user password *GROAN*
           Ok signUpRequestUser ->
-              let email = signUpRequestUser.email
-                  updatedUserDb = Dict.set email signUpRequestUser model.appState.userDb
-                  updatedAppState = {model.appState | userDb = updatedUserDb}
-              in
-                Debug.log (Debug.toString updatedAppState)
-                {
-                    model={model | appState=updatedAppState}
-                 ,  command = successResponse res 201 "text/plain" Nothing <| "created user: " ++ email
-                }
+            { model = model
+            , command =
+                Task.attempt
+                    (\result ->
+                        when result is
+                            Ok context ->
+                                GotSecureContext {context=context, user=SignUpUser signUpRequestUser, res=res}
+                            Err error -> ErrorDetected {error="Failed to get secure context", res=res}
+                    )
+                    getSecureContext
+            }
           Err error ->
             {
                 model=model
-                -- TODO: handle all Error enum values
-                    -- Field
-                    -- Index
-                    -- OneOf
-                    -- Failure
-             ,  command = errorResponse res 400 <| JsonDecode.errorToString error
+             ,  command=errorResponse res 400 "application/json" <| JsonDecode.errorToString error
             }
 
 hashPassword : Crypto.SecureContext -> String -> Task String Bytes
@@ -228,12 +233,7 @@ signInHandler model req res =
           Err error ->
             {
                 model=model
-                -- TODO: handle all Error enum values
-                    -- Field
-                    -- Index
-                    -- OneOf
-                    -- Failure
-             ,  command = errorResponse res 400 <| JsonDecode.errorToString error
+             ,  command=errorResponse res 400 "application/json" <| JsonDecode.errorToString error
             }
           Ok signInRequestUser ->
             { model = model
@@ -241,19 +241,14 @@ signInHandler model req res =
                 Task.attempt
                     (\result ->
                         when result is
-                            Ok context -> GotSecureContext {context=context, user=signInRequestUser, res=res}
-                            Err error ->
-                                -- Debug.log ("Unable to get secure context" ++ (Debug.toString error))
-                                -- i don't think this is correct? this wouldn't be HashingFailed
-                                -- but GetSecureContextFailed
-                                HashingFailed {error="Failed to get secure context", res=res}
+                            Ok context -> GotSecureContext {context=context, user=SignInUser signInRequestUser, res=res}
+                            Err error -> ErrorDetected {error="Failed to get secure context", res=res}
                     )
                     getSecureContext
             }
 
 
 corsHandler model req res =
-    -- all XHR requests need the CORS headers, so this winds up being pretty useless ...
     let corsHeaders = Nothing
     in
         {
@@ -272,13 +267,13 @@ requestHandler model req res =
                     signInHandler model req res
                 _ ->
                     {
-                        command=errorResponse res 404 ""
+                        command=errorResponse res 404 "application/json" ""
                       , model=model
                     }
         Request.UNKNOWN method ->
             let unknownMethodError = "Unknown HTTP method: " ++ method
             in
-                -- TODO: submit feature request / patch for this?
+                -- TODO: see about submitting ticket/patch for this?
                 if method == "OPTIONS" then
                     corsHandler model req res
                 else
@@ -292,43 +287,43 @@ requestHandler model req res =
               , model=model
             }
 
-bytesToHex : Bytes -> String
-bytesToHex bytes =
-    let
-        byteToHex : Int -> String
-        byteToHex byte =
-            let
-                toHexDigit n =
-                    if n < 10 then
-                        String.fromInt n
-                    else
-                        when n is
-                            10 -> "a"
-                            11 -> "b"
-                            12 -> "c"
-                            13 -> "d"
-                            14 -> "e"
-                            15 -> "f"
-                            _ -> "0"
-                high = byte // 16
-                low = Math.modBy 16 byte
-            in
-                toHexDigit high ++ toHexDigit low
+-- bytesToHex : Bytes -> String
+-- bytesToHex bytes =
+--     let
+--         byteToHex : Int -> String
+--         byteToHex byte =
+--             let
+--                 toHexDigit n =
+--                     if n < 10 then
+--                         String.fromInt n
+--                     else
+--                         when n is
+--                             10 -> "a"
+--                             11 -> "b"
+--                             12 -> "c"
+--                             13 -> "d"
+--                             14 -> "e"
+--                             15 -> "f"
+--                             _ -> "0"
+--                 high = byte // 16
+--                 low = Math.modBy 16 byte
+--             in
+--                 toHexDigit high ++ toHexDigit low
 
-        buildHexString : Int -> BytesDecode.Decoder String
-        buildHexString remaining =
-            if remaining <= 0 then
-                BytesDecode.succeed ""
-            else
-                BytesDecode.map2 (\byte rest -> byteToHex byte ++ rest)
-                    BytesDecode.unsignedInt8
-                    (buildHexString (remaining - 1))
+--         buildHexString : Int -> BytesDecode.Decoder String
+--         buildHexString remaining =
+--             if remaining <= 0 then
+--                 BytesDecode.succeed ""
+--             else
+--                 BytesDecode.map2 (\byte rest -> byteToHex byte ++ rest)
+--                     BytesDecode.unsignedInt8
+--                     (buildHexString (remaining - 1))
 
-        decoder = buildHexString (Bytes.length bytes)
-    in
-        when BytesDecode.decode decoder bytes is
-            Just hexString -> hexString
-            Nothing -> ""
+--         decoder = buildHexString (Bytes.length bytes)
+--     in
+--         when BytesDecode.decode decoder bytes is
+--             Just hexString -> hexString
+--             Nothing -> ""
 
 update : Msg -> Model -> { model : Model, command : Cmd Msg }
 update msg model =
@@ -351,7 +346,7 @@ update msg model =
                     }
         GotRequest { request = req, response = res } ->
             requestHandler model req res
-        PasswordChecked passwordCheckValues -> -- dumb variable name but better than "stuff"
+        PasswordChecked passwordCheckValues ->
             when passwordCheckValues.match is
               True ->
                   let body = encodeJsonBody <| encodeUser passwordCheckValues.user
@@ -364,43 +359,83 @@ update msg model =
               False ->
                 Debug.log "login failed"
                 {
-                   command=errorResponse passwordCheckValues.res 400 <| "login failed!"
+                   command=errorResponse passwordCheckValues.res 400 "application/json" <| "{\"error\": \"login failed\"}"
                  , model=model
                 }
-        GotSecureContext {context=context, user=signInRequestUser, res=res} ->
-            let
-                user_ = Dict.get signInRequestUser.email model.appState.userDb
-            in
-            { model = model
-            , command =
-                Task.attempt
-                    (\result ->
-                        -- this is dumb and should be its own Msg
-                        -- this nesting is also dumb
-                        when user_ is
-                            Just user__ ->
+        GotSecureContext {context=context, user=requestUser, res=res} ->
+            when requestUser is
+                SignInUser signInRequestUser ->
+                    let
+                        user_ = Dict.get signInRequestUser.email model.appState.userDb
+                    in
+                    { model=model
+                    , command=Task.attempt
+                            (\result ->
+                                when user_ is
+                                    Just user__ ->
+                                        when result is
+                                            Ok hashedBytes ->
+                                                let
+                                                    hashedHex = bytesToHex hashedBytes
+                                                    match = (hashedHex == user__.hashedPassword)
+                                                in
+                                                    PasswordChecked {match=match, res=res, user=user__}
+                                            Err _ ->
+                                                ErrorDetected {error="Password hashing failed", res=res}
+                                    Nothing ->
+                                        ErrorDetected {error="no user", res=res}
+                            )
+                            (hashPassword context signInRequestUser.password)
+                    }
+
+                SignUpUser signUpRequestUser ->
+                    { model = model
+                    , command =
+                        Task.attempt
+                            (\result ->
                                 when result is
                                     Ok hashedBytes ->
                                         let
                                             hashedHex = bytesToHex hashedBytes
-                                            match = (hashedHex == user__.hashedPassword)
+                                            newUser = {
+                                                email = signUpRequestUser.email,
+                                                firstName = signUpRequestUser.firstName,
+                                                lastName = signUpRequestUser.lastName,
+                                                hashedPassword = hashedHex
+                                                }
                                         in
-                                            PasswordChecked {
-                                                match=match
-                                              , res=res
-                                              , user=user__
-                                            }
+                                            UserCreated {user=newUser, res=res}
                                     Err _ ->
-                                        HashingFailed {error="Password hashing failed", res=res}
-                            Nothing ->
-                                HashingFailed {error="No user to compare against", res=res}
-                    )
-                    (hashPassword context signInRequestUser.password)
+                                        ErrorDetected {error="Password hashing failed", res=res}
+                            )
+                            (hashPassword context signUpRequestUser.password)
+                    }
+
+        UserCreated {user=newUser, res=res} ->
+            let
+                updatedUserDb = Dict.set newUser.email newUser model.appState.userDb
+                updatedAppState = {model.appState | userDb = updatedUserDb}
+                body = encodeJsonBody <| encodeUser newUser
+            in
+                {
+                    model = {model | appState = updatedAppState}
+                 ,  command=successResponse res 201 "application/json" Nothing body
+                }
+
+        ErrorDetected {error=error, res=res} ->
+            {
+                model=model
+              , command=errorResponse res 400 "application/json" <| "{\"error\": \""++ error ++"\"}"
+
             }
-        -- This results in an inscrutable error:
-        -- > thread blocked indefinitely in an MVar operation
-        -- HashingFailed _ -> {model=model, command=Cmd.none}
-        _ -> {model=model, command=Cmd.none}
+
+        HashingFailed {res=res} ->
+            Debug.log "hashing failed"
+            {
+                command=errorResponse res 400 "application/json" <| "{\"error\": \"hashing failed\"}"
+              , model=model
+            }
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     when model.server is
