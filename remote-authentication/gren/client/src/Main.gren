@@ -1,7 +1,7 @@
 module Main exposing (..)
 
-import Browser
 import Action
+import Browser
 import Html exposing (..)
 import Model
 import Types
@@ -9,13 +9,13 @@ import Update
 import View
 
 
-init : {apiRoot: String} -> { model : Model.Model, command : Cmd Action.Action }
+init : { apiRoot : String } -> { model : Model.Model, command : Cmd Action.Action }
 init flags =
     let
         defaultModel =
             Model.defaultModel
     in
-        {model = {defaultModel | signedIn=False, apiRoot = flags.apiRoot}, command = Cmd.none}
+    { model = { defaultModel | signedIn = False, apiRoot = flags.apiRoot }, command = Cmd.none }
 
 
 main : Program Types.Flags Model.Model Action.Action
