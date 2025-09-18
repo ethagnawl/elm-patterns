@@ -11,8 +11,8 @@ import Types exposing (..)
 attributesDecoder =
     Decode.map3 attributes
         (Decode.field "email" Decode.string)
-        (Decode.field "first_name" Decode.string)
-        (Decode.field "last_name" Decode.string)
+        (Decode.field "firstName" Decode.string)
+        (Decode.field "lastName" Decode.string)
 
 
 dataDecoder =
