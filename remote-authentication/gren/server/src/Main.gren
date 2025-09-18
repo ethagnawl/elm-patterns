@@ -106,9 +106,13 @@ init env =
     let
         dummyEmail =
             "nobody@test.com"
-
         userDb =
             Dict.empty
+        default_port = 3000
+        port_string_ =
+            Maybe.withDefault (String.fromInt default_port) (Array.get 2 env.args)
+        port_ =
+            Maybe.withDefault default_port <| String.toInt port_string_
     in
     --|>
     -- Dict.set
@@ -130,9 +134,10 @@ init env =
                     }
                 , command =
                     Task.attempt CreateServerResult <|
+                        Debug.log ("Starting server on " ++ (Debug.toString port_))
                         Http.createServer serverPermission
-                            { host = "localhost"
-                            , port_ = 3000
+                            { host = "0.0.0.0"
+                            , port_ = port_
                             }
                 }
 
