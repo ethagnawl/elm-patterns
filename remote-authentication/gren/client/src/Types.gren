@@ -1,10 +1,12 @@
 module Types exposing (..)
 
+
 type alias Attributes =
     { email : String
     , firstName : String
     , lastName : String
     }
+
 
 attributes : String -> String -> String -> Attributes
 attributes email firstName lastName =
@@ -13,6 +15,7 @@ attributes email firstName lastName =
 
 type alias Flags =
     { apiRoot : String }
+
 
 flags : String -> Flags
 flags apiRoot =
@@ -27,6 +30,7 @@ type PageState
 type alias Data =
     { attributes : Attributes }
 
+
 data : Attributes -> Data
 data attrs =
     { attributes = attrs }
@@ -34,6 +38,7 @@ data attrs =
 
 type alias Wrapper =
     { data : Data }
+
 
 wrapper : Data -> Wrapper
 wrapper d =
