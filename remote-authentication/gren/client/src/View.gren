@@ -68,6 +68,7 @@ view model =
                                 , type_ "first_name"
                                 , class "form-control"
                                 , Html.Attributes.value model.firstName
+                                , Html.Attributes.required True
                                 , onInput Action.SetFirstName
                                 ]
                                 []
@@ -81,6 +82,7 @@ view model =
                                 , type_ "last_name"
                                 , class "form-control"
                                 , Html.Attributes.value model.lastName
+                                , Html.Attributes.required True
                                 , onInput Action.SetLastName
                                 ]
                                 []
@@ -94,6 +96,8 @@ view model =
                                 , type_ "email"
                                 , class "form-control"
                                 , Html.Attributes.value model.email
+                                , Html.Attributes.pattern "/^.+@.+$/"
+                                , Html.Attributes.required True
                                 , onInput Action.SetEmail
                                 ]
                                 []
@@ -107,6 +111,7 @@ view model =
                                 , type_ "password"
                                 , class "form-control"
                                 , Html.Attributes.value model.password
+                                , Html.Attributes.required True
                                 , onInput Action.SetPassword
                                 ]
                                 []
@@ -145,6 +150,8 @@ view model =
                                 , type_ "email"
                                 , class "form-control"
                                 , Html.Attributes.value model.email
+                                , Html.Attributes.pattern "/^.+@.+$/"
+                                , Html.Attributes.required True
                                 , onInput Action.SetEmail
                                 ]
                                 []
@@ -158,6 +165,7 @@ view model =
                                 , type_ "password"
                                 , class "form-control"
                                 , Html.Attributes.value model.password
+                                , Html.Attributes.required True
                                 , onInput Action.SetPassword
                                 ]
                                 []
