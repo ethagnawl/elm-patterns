@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Bytes exposing (Bytes)
+import BytesUtils exposing (bytesToHex)
 import Crypto exposing (digest, getSecureContext)
 import Dict exposing (Dict)
 import HttpServer as Http
@@ -76,9 +77,9 @@ type alias SignInRequestUser =
 
 type alias SignUpRequestUser =
     { email : String
-    , password : String
     , firstName : String
     , lastName : String
+    , password : String
     }
 
 
@@ -106,11 +107,16 @@ init env =
     let
         dummyEmail =
             "nobody@test.com"
+
         userDb =
             Dict.empty
-        default_port = 3000
+
+        default_port =
+            3000
+
         port_string_ =
             Maybe.withDefault (String.fromInt default_port) (Array.get 2 env.args)
+
         port_ =
             Maybe.withDefault default_port <| String.toInt port_string_
     in
@@ -134,8 +140,9 @@ init env =
                     }
                 , command =
                     Task.attempt CreateServerResult <|
-                        Debug.log ("Starting server on " ++ (Debug.toString port_))
-                        Http.createServer serverPermission
+                        Debug.log ("Starting server on " ++ Debug.toString port_)
+                            Http.createServer
+                            serverPermission
                             { host = "0.0.0.0"
                             , port_ = port_
                             }
@@ -150,6 +157,7 @@ makeSignInRequestUser email password =
 
 
 signInBodyDecoder =
+    -- order matters for $$$$'s sake
     Http.bodyFromJson
         (JsonDecode.map2 makeSignInRequestUser
             (JsonDecode.field "email" JsonDecode.string)
@@ -158,7 +166,7 @@ signInBodyDecoder =
 
 
 makeSignUpRequestUser : String -> String -> String -> String -> SignUpRequestUser
-makeSignUpRequestUser email password firstName lastName =
+makeSignUpRequestUser email firstName lastName password =
     { email = email
     , firstName = firstName
     , password = password
@@ -167,6 +175,7 @@ makeSignUpRequestUser email password firstName lastName =
 
 
 signUpBodyDecoder =
+    -- order matters for $$$$'s sake
     Http.bodyFromJson
         (JsonDecode.map4 makeSignUpRequestUser
             (JsonDecode.field "email" JsonDecode.string)
@@ -244,11 +253,14 @@ signUpHandler model req res =
             }
 
 
-hashPassword : Crypto.SecureContext -> String -> Task String Bytes
-hashPassword context password =
+hashPassword : Crypto.SecureContext -> String -> String -> Task String Bytes
+hashPassword context password salt =
     let
+        combined =
+            password ++ salt
+
         passwordBytes =
-            Bytes.fromString password
+            Bytes.fromString <| password ++ salt
     in
     digest context Crypto.Sha256 passwordBytes
         |> Task.mapError (\_ -> "Hashing failed")
@@ -328,9 +340,14 @@ requestHandler model req res =
             }
 
 
-stringifyBytes bytes =
-    -- This is BAD and should be considered an unrecoverable error
-    Maybe.withDefault "8Cc.5F*BpXl92=bH0870auco" <| Bytes.toString bytes
+hexifyBytes bytes =
+    -- TODO: Determine if this is absolutely necessary. We can't just call
+    -- Bytes.toString on bytes because they're not UTF-8 encoded. We'd
+    -- been doing this but it was failing silently and *always* falling back to
+    -- the default.
+    -- Previous approach:
+    -- Maybe.withDefault "8Cc.5F*BpXl92=bH0870auco" <| Bytes.toString bytes
+    bytesToHex bytes
 
 
 update : Msg -> Model -> { model : Model, command : Cmd Msg }
@@ -391,8 +408,11 @@ update msg model =
                                         when result is
                                             Ok hashedBytes ->
                                                 let
+                                                    hexedBytes =
+                                                        hexifyBytes hashedBytes
+
                                                     match =
-                                                        stringifyBytes hashedBytes == user__.hashedPassword
+                                                        hexedBytes == user__.hashedPassword
                                                 in
                                                 PasswordChecked { match = match, res = res, user = user__ }
 
@@ -402,7 +422,7 @@ update msg model =
                                     Nothing ->
                                         ErrorDetected { error = "no user", res = res }
                             )
-                            (hashPassword context signInRequestUser.password)
+                            (hashPassword context signInRequestUser.password signInRequestUser.email)
                     }
 
                 SignUpUser signUpRequestUser ->
@@ -417,7 +437,7 @@ update msg model =
                                                 { email = signUpRequestUser.email
                                                 , firstName = signUpRequestUser.firstName
                                                 , lastName = signUpRequestUser.lastName
-                                                , hashedPassword = stringifyBytes hashedBytes
+                                                , hashedPassword = hexifyBytes hashedBytes
                                                 }
                                         in
                                         UserCreated { user = newUser, res = res }
@@ -425,7 +445,7 @@ update msg model =
                                     Err _ ->
                                         ErrorDetected { error = "Password hashing failed", res = res }
                             )
-                            (hashPassword context signUpRequestUser.password)
+                            (hashPassword context signUpRequestUser.password signUpRequestUser.email)
                     }
 
         UserCreated { user = newUser, res = res } ->
