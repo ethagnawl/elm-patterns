@@ -41,6 +41,16 @@ The main aims of this demo were to show how you'd:
 - configure CORS for JS/web clients
 - hash a password (naively; still need to salt)
 
+This was also a good excuse to try my hand at creating a Gren package! As part
+of the hashing workflow, I found myself needing a function that would convert
+bytes to a hex-encoded string. So, I wrote my own, made a [GH repository](https://github.com/ethagnawl/gren-bytes-utils) for it
+and was able to pull it into this project and use it without issue. There's a
+case to be made for adding this function to the Bytes module and there's even an
+open ticket for this but, for now, I hope people find my package helpful.
+
+The hashing workflow also neccesitated a common bit of functionality which
+is currently missing from the Gren stlib
+
 ## Demo
 - https://pdoherty-demos.s3.us-east-1.amazonaws.com/remote-authentication/gren/index.html
 
