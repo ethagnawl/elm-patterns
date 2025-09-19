@@ -8,10 +8,5 @@
     <script>
     var node = document.getElementById("app");
     var elm_app = Gren.Main.init({node: node, flags: {"apiRoot": "http://localhost:3000/"}});
-
-    var wakeup = new XMLHttpRequest();
-    wakeup.addEventListener("load", function () {});
-    wakeup.open("GET", "http://localhost:3000/heartbeat");
-    wakeup.send();
     </script>
 </body>
