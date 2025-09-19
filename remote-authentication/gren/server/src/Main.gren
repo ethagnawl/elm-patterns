@@ -1,0 +1,485 @@
+module Main exposing (main)
+
+import Bytes exposing (Bytes)
+import BytesUtils exposing (bytesToHex)
+import Crypto exposing (digest, getSecureContext)
+import Dict exposing (Dict)
+import HttpServer as Http
+import HttpServer.Response as Response exposing (Response)
+import Init
+import Json.Decode as JsonDecode
+import Json.Encode as JsonEncode
+import Math
+import Node exposing (Environment, Program)
+import Stream
+import Task exposing (Task)
+import Url
+
+
+main : Program Model Msg
+main =
+    Node.defineProgram
+        { init = init
+        , subscriptions = subscriptions
+        , update = update
+        }
+
+
+encodeJsonBody : JsonEncode.Value -> String
+encodeJsonBody data =
+    JsonEncode.encode 0 <|
+        JsonEncode.object
+            [ { key = "data"
+              , value =
+                    JsonEncode.object
+                        [ { key = "attributes"
+                          , value = data
+                          }
+                        ]
+              }
+            ]
+
+
+encodeUser : User -> JsonEncode.Value
+encodeUser user =
+    JsonEncode.object
+        [ { key = "firstName", value = JsonEncode.string user.firstName }
+        , { key = "email", value = JsonEncode.string user.email }
+        , { key = "lastName", value = JsonEncode.string user.lastName }
+        ]
+
+
+type alias User =
+    { email : String
+    , firstName : String
+    , hashedPassword : String
+    , lastName : String
+    }
+
+
+type alias UserDb =
+    Dict String User
+
+
+type alias Model =
+    { appState : { userDb : UserDb }
+    , server : Maybe Http.Server
+    , stderr : Stream.Writable Bytes
+    , stdout : Stream.Writable Bytes
+    }
+
+
+type alias SignInRequestUser =
+    { email : String
+    , password : String
+    }
+
+
+type alias SignUpRequestUser =
+    { email : String
+    , firstName : String
+    , lastName : String
+    , password : String
+    }
+
+
+type RequestUser
+    = SignUpUser SignUpRequestUser
+    | SignInUser SignInRequestUser
+
+
+type Msg
+    = CreateServerResult (Result Http.ServerError Http.Server)
+    | ErrorDetected { error : String, res : Response.Response }
+    | GotRequest { request : Http.Request, response : Response }
+    | GotSecureContext
+        { context : Crypto.SecureContext
+        , res : Response.Response
+        , user : RequestUser
+        }
+    | HashingFailed { error : String, res : Response.Response }
+    | PasswordChecked { match : Bool, user : User, res : Response.Response }
+    | UserCreated { user : User, res : Response.Response }
+
+
+init : Environment -> Init.Task { model : Model, command : Cmd Msg }
+init env =
+    let
+        dummyEmail =
+            "nobody@test.com"
+
+        userDb =
+            Dict.empty
+
+        default_port =
+            3000
+
+        port_string_ =
+            Maybe.withDefault (String.fromInt default_port) (Array.get 2 env.args)
+
+        port_ =
+            Maybe.withDefault default_port <| String.toInt port_string_
+    in
+    --|>
+    -- Dict.set
+    -- dummyEmail
+    -- {
+    --     email=dummyEmail,
+    --     firstName="Test",
+    --     hashedPassword="936a185caaa266bb9cbe981e9e05cb78cd732b0b3280eb944412bb6f8f8f07af",
+    --     lastName="User"
+    -- }
+    Init.await Http.initialize <|
+        \serverPermission ->
+            Node.startProgram
+                { model =
+                    { appState = { userDb = userDb }
+                    , server = Nothing
+                    , stderr = env.stderr
+                    , stdout = env.stdout
+                    }
+                , command =
+                    Task.attempt CreateServerResult <|
+                        Debug.log ("Starting server on " ++ Debug.toString port_)
+                            Http.createServer
+                            serverPermission
+                            { host = "0.0.0.0"
+                            , port_ = port_
+                            }
+                }
+
+
+makeSignInRequestUser : String -> String -> SignInRequestUser
+makeSignInRequestUser email password =
+    { email = email
+    , password = password
+    }
+
+
+signInBodyDecoder =
+    -- order matters for $$$$'s sake
+    Http.bodyFromJson
+        (JsonDecode.map2 makeSignInRequestUser
+            (JsonDecode.field "email" JsonDecode.string)
+            (JsonDecode.field "password" JsonDecode.string)
+        )
+
+
+makeSignUpRequestUser : String -> String -> String -> String -> SignUpRequestUser
+makeSignUpRequestUser email firstName lastName password =
+    { email = email
+    , firstName = firstName
+    , password = password
+    , lastName = lastName
+    }
+
+
+signUpBodyDecoder =
+    -- order matters for $$$$'s sake
+    Http.bodyFromJson
+        (JsonDecode.map4 makeSignUpRequestUser
+            (JsonDecode.field "email" JsonDecode.string)
+            (JsonDecode.field "firstName" JsonDecode.string)
+            (JsonDecode.field "lastName" JsonDecode.string)
+            (JsonDecode.field "password" JsonDecode.string)
+        )
+
+
+errorResponse res code contentType message =
+    res
+        |> Response.setStatus code
+        |> Response.setHeader "Content-type" contentType
+        |> Response.setHeader "Access-Control-Allow-Origin" "*"
+        |> Response.setHeader "Access-Control-Allow-Methods" "POST"
+        |> Response.setHeader "Access-Control-Allow-Headers" "*"
+        |> Response.setBody message
+        |> Response.send
+
+
+successResponse res code contentType headers message =
+    let
+        baseResponse =
+            res
+                |> Response.setStatus code
+                |> Response.setHeader "Content-Type" contentType
+                |> Response.setHeader "Access-Control-Allow-Origin" "*"
+                |> Response.setHeader "Access-Control-Allow-Methods" "POST"
+                |> Response.setHeader "Access-Control-Allow-Headers" "*"
+                |> Response.setBody message
+
+        finalResponse =
+            when headers is
+                Just newHeaders ->
+                    let
+                        result =
+                            Dict.foldl
+                                (\key value currentResponse -> Response.setHeader key value currentResponse)
+                                baseResponse
+                                newHeaders
+                    in
+                    result
+
+                Nothing ->
+                    baseResponse
+    in
+    Response.send finalResponse
+
+
+signUpHandler : Model -> Http.Request -> Response.Response -> { model : Model, command : Cmd Msg }
+signUpHandler model req res =
+    let
+        decodedData =
+            signUpBodyDecoder req
+    in
+    when decodedData is
+        Ok signUpRequestUser ->
+            { model = model
+            , command =
+                Task.attempt
+                    (\result ->
+                        when result is
+                            Ok context ->
+                                GotSecureContext { context = context, user = SignUpUser signUpRequestUser, res = res }
+
+                            Err error ->
+                                ErrorDetected { error = "Failed to get secure context", res = res }
+                    )
+                    getSecureContext
+            }
+
+        Err error ->
+            { model = model
+            , command = errorResponse res 400 "application/json" <| JsonDecode.errorToString error
+            }
+
+
+hashPassword : Crypto.SecureContext -> String -> String -> Task String Bytes
+hashPassword context password salt =
+    let
+        combined =
+            password ++ salt
+
+        passwordBytes =
+            Bytes.fromString <| password ++ salt
+    in
+    digest context Crypto.Sha256 passwordBytes
+        |> Task.mapError (\_ -> "Hashing failed")
+
+
+signInHandler : Model -> Http.Request -> Response.Response -> { model : Model, command : Cmd Msg }
+signInHandler model req res =
+    let
+        decodedData =
+            signInBodyDecoder req
+    in
+    when decodedData is
+        Err error ->
+            { model = model
+            , command = errorResponse res 400 "application/json" <| JsonDecode.errorToString error
+            }
+
+        Ok signInRequestUser ->
+            { model = model
+            , command =
+                Task.attempt
+                    (\result ->
+                        when result is
+                            Ok context ->
+                                GotSecureContext { context = context, user = SignInUser signInRequestUser, res = res }
+
+                            Err error ->
+                                ErrorDetected { error = "Failed to get secure context", res = res }
+                    )
+                    getSecureContext
+            }
+
+
+corsHandler model req res =
+    let
+        corsHeaders =
+            Nothing
+    in
+    { command = successResponse res 200 "text/plain" corsHeaders ""
+    , model = model
+    }
+
+
+requestHandler : Model -> Http.Request -> Response.Response -> { model : Model, command : Cmd Msg }
+requestHandler model req res =
+    when req.method is
+        Http.POST ->
+            when req.url.path is
+                "/users/auth/sign-up" ->
+                    signUpHandler model req res
+
+                "/users/auth/sign-in" ->
+                    signInHandler model req res
+
+                _ ->
+                    { command = errorResponse res 404 "application/json" ""
+                    , model = model
+                    }
+
+        Http.UNKNOWN method ->
+            let
+                unknownMethodError =
+                    "Unknown HTTP method: " ++ method
+            in
+            -- TODO: see about submitting ticket/patch for this?
+            if method == "OPTIONS" then
+                corsHandler model req res
+
+            else
+                { command = successResponse res 400 "text/plain" Nothing unknownMethodError
+                , model = model
+                }
+
+        _ ->
+            { command = successResponse res 400 "text/plain" Nothing "..."
+            , model = model
+            }
+
+
+hexifyBytes bytes =
+    -- TODO: Determine if this is absolutely necessary. We can't just call
+    -- Bytes.toString on bytes because they're not UTF-8 encoded. We'd
+    -- been doing this but it was failing silently and *always* falling back to
+    -- the default.
+    -- Previous approach:
+    -- Maybe.withDefault "8Cc.5F*BpXl92=bH0870auco" <| Bytes.toString bytes
+    bytesToHex bytes
+
+
+update : Msg -> Model -> { model : Model, command : Cmd Msg }
+update msg model =
+    when msg is
+        CreateServerResult result ->
+            when result is
+                Ok server ->
+                    { model = { model | server = Just server }
+                    , command =
+                        Stream.writeLineAsBytes "Server started" model.stdout
+                            |> Task.onError (\_ -> Task.succeed model.stderr)
+                            |> Task.execute
+                    }
+
+                Err (Http.ServerError { code, message }) ->
+                    { model = model
+                    , command =
+                        Stream.writeLineAsBytes ("Server failed to start: " ++ code ++ "\n" ++ message) model.stderr
+                            |> Task.onError (\_ -> Task.succeed model.stderr)
+                            |> Task.execute
+                    }
+
+        GotRequest { request = req, response = res } ->
+            requestHandler model req res
+
+        PasswordChecked passwordCheckValues ->
+            when passwordCheckValues.match is
+                True ->
+                    let
+                        body =
+                            encodeJsonBody <| encodeUser passwordCheckValues.user
+                    in
+                    Debug.log "login succeeded"
+                        { command = successResponse passwordCheckValues.res 200 "application/json" Nothing body
+                        , model = model
+                        }
+
+                False ->
+                    Debug.log "login failed"
+                        { command = errorResponse passwordCheckValues.res 400 "application/json" <| "{\"error\": \"login failed\"}"
+                        , model = model
+                        }
+
+        GotSecureContext { context = context, user = requestUser, res = res } ->
+            when requestUser is
+                SignInUser signInRequestUser ->
+                    let
+                        user_ =
+                            Dict.get signInRequestUser.email model.appState.userDb
+                    in
+                    { model = model
+                    , command =
+                        Task.attempt
+                            (\result ->
+                                when user_ is
+                                    Just user__ ->
+                                        when result is
+                                            Ok hashedBytes ->
+                                                let
+                                                    hexedBytes =
+                                                        hexifyBytes hashedBytes
+
+                                                    match =
+                                                        hexedBytes == user__.hashedPassword
+                                                in
+                                                PasswordChecked { match = match, res = res, user = user__ }
+
+                                            Err _ ->
+                                                ErrorDetected { error = "Password hashing failed", res = res }
+
+                                    Nothing ->
+                                        ErrorDetected { error = "no user", res = res }
+                            )
+                            (hashPassword context signInRequestUser.password signInRequestUser.email)
+                    }
+
+                SignUpUser signUpRequestUser ->
+                    { model = model
+                    , command =
+                        Task.attempt
+                            (\result ->
+                                when result is
+                                    Ok hashedBytes ->
+                                        let
+                                            newUser =
+                                                { email = signUpRequestUser.email
+                                                , firstName = signUpRequestUser.firstName
+                                                , lastName = signUpRequestUser.lastName
+                                                , hashedPassword = hexifyBytes hashedBytes
+                                                }
+                                        in
+                                        UserCreated { user = newUser, res = res }
+
+                                    Err _ ->
+                                        ErrorDetected { error = "Password hashing failed", res = res }
+                            )
+                            (hashPassword context signUpRequestUser.password signUpRequestUser.email)
+                    }
+
+        UserCreated { user = newUser, res = res } ->
+            let
+                updatedUserDb =
+                    Dict.set newUser.email newUser model.appState.userDb
+
+                updatedAppState =
+                    { model.appState | userDb = updatedUserDb }
+
+                body =
+                    encodeJsonBody <| encodeUser newUser
+            in
+            { command = successResponse res 201 "application/json" Nothing body
+            , model = { model | appState = updatedAppState }
+            }
+
+        ErrorDetected { error = error, res = res } ->
+            { command = errorResponse res 400 "application/json" <| "{\"error\": \"" ++ error ++ "\"}"
+            , model = model
+            }
+
+        HashingFailed { res = res } ->
+            Debug.log "hashing failed"
+                { command = errorResponse res 400 "application/json" <| "{\"error\": \"hashing failed\"}"
+                , model = model
+                }
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    when model.server is
+        Just server ->
+            Http.onRequest server (\req res -> GotRequest { request = req, response = res })
+
+        Nothing ->
+            Sub.none
